@@ -13,14 +13,23 @@ This effort is supported by Qollab & IonQ.
 
 <a id="results"></a>
 
-| Machine (dial at 6%) | Λ, fitted over d = 3…9 | 95% interval |
-|---|---|---|
-| IonQ Forte Enterprise 1 noise model (2 runs, 3,200 shots) | **2.47** | 2.29 – 2.75 |
-| IonQ Forte 1 noise model | **2.78** | 2.37 – 3.27 |
-| Google Willow (surface code, 2024) | 2.14 | ± 0.02 |
-| Google Sycamore (repetition code, 2021) | 2.99 | ± 0.09 |
+| Machine (noise model, dial at 6%) | Kind | Qubits | Shots | Λ fitted over all distances | 95% interval |
+|---|---|---|---|---|---|
+| IonQ Forte 1 | trapped ions | 25 | 1,600 | **2.78** | 2.37 – 3.27 |
+| IonQ Aria 2 | trapped ions | 19 | 1,600 | **2.63** | 2.26 – 3.31 |
+| IonQ Forte Enterprise 1 | trapped ions | 25 | 3,200 (2 runs) | **2.47** | 2.29 – 2.75 |
+| IonQ Aria 1 | trapped ions | 19 | 1,600 | **2.46** | 2.10 – 3.11 |
+| IonQ Forte Enterprise 1, **twirling off** | trapped ions | 25 | 1,600 | **1.97** | 1.73 – 2.12 |
+| IBM Kingston | superconducting | 17 | 1,600 | **2.87** | 2.44 – 3.53 |
+| IBM Fez | superconducting | 17 | 1,600 | **2.71** | 2.29 – 3.17 |
+| IBM Boston | superconducting | 17 | 1,600 | **2.64** | 2.13 – 2.88 |
+| IBM Aachen | superconducting | 17 | 1,600 | **2.43** | 1.98 – 2.59 |
+| IBM Pittsburgh | superconducting | 17 | 1,600 | **2.23** | 1.97 – 2.55 |
+| Built-in simulator | no noise | 19 | 1,600 | **2.94** | 2.36 – 3.77 |
+| *Google Willow, surface code (2024)* | superconducting | 101 | | *2.14* | ± 0.02 |
+| *Google Sycamore, repetition code (2021)* | superconducting | 21 | | *2.99* | ± 0.09 |
 
-*More machines are recorded in the page's atlas (Figure 6).*
+With the dial at 6%, every machine lands between Λ ≈ 2.2 and 2.9, and each machine's own noise moves it a little. Turning twirling off on IonQ Forte Enterprise 1 drops Λ from 2.47 to 1.97: coherent errors add up and the decoder, which expects random flips, loses ground. A third independent Forte Enterprise run, launched from the page itself, gave Λ = 2.20.
 
 ---
 

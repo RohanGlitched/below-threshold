@@ -113,7 +113,7 @@ function renderAll() {
     const trows = ((theory.models || {})[model] || []).filter((t) => Math.abs(t.q - q) < 1e-9);
     renderEps($('chart-eps'), sweep, trows);
     const circ = run.circuits === 1 ? `one ${run.qubits}-qubit circuit` : `${run.circuits} copies of a ${run.qubits}-qubit circuit`;
-    $('result-source').textContent = `${state.live ? 'Measured just now' : 'Recorded'} on ${shortName(run.profile.label)} · ${circ}, one job · ${(run.shots_per_circuit * run.circuits).toLocaleString()} shots${run.runs > 1 ? ` from ${run.runs} runs, pooled` : ''} · dial ${Math.round(q * 100)}% · ${run.r} rounds${run.twirl === false ? ' · not twirled' : ''}${run.when ? ' · ' + run.when : ''}`;
+    $('result-source').textContent = `${state.live && !run.recorded ? 'Measured just now' : 'Recorded'} on ${shortName(run.profile.label)} · ${circ}, one job · ${(run.shots_per_circuit * run.circuits).toLocaleString()} shots${run.runs > 1 ? ` from ${run.runs} runs, pooled` : ''} · dial ${Math.round(q * 100)}% · ${run.r} rounds${run.twirl === false ? ' · not twirled' : ''}${run.when ? ' · ' + run.when : ''}`;
     renderTable(sweep);
     renderCalibration(run, sweep.calibration);
     state.shot = 0;
@@ -305,7 +305,7 @@ async function runExperiment(shotsOverride) {
   go.classList.add('busy');
   go.textContent = 'Running…';
   const t0 = performance.now();
-  setStatus(`Sending ${circuits === 1 ? 'one circuit' : circuits + ' circuits'} to ${shortName(prof.label)} as one job, then decoding every code size inside it. ${prof.family === 'ionq' ? 'IonQ simulates every shot, so this takes a few minutes.' : prof.family === 'ibm' ? 'The IBM noise model simulates every shot in your browser; allow a few minutes.' : ''}`);
+  setStatus(`Sending ${circuits === 1 ? 'one circuit' : circuits + ' circuits'} to ${shortName(prof.label)} as one job, then decoding every code size inside it. ${prof.hardware ? 'This is real hardware: the job waits in IonQ’s queue, which can take minutes to hours. Keep this tab open.' : prof.family === 'ionq' ? 'IonQ simulates every shot, so this takes a few minutes.' : prof.family === 'ibm' ? 'The IBM noise model simulates every shot in your browser; allow a few minutes.' : ''}`);
   const tick = setInterval(() => {
     go.textContent = `Running… ${Math.round((performance.now() - t0) / 1000)} s`;
   }, 1000);

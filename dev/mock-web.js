@@ -19,9 +19,9 @@ export const boot = fn(async () => {
 });
 
 export const run = fn(async (backend, q, shots, twirl) => {
-  await new Promise((r) => setTimeout(r, 2500));
-  const r = JSON.parse(await get(twirl === false ? './run-6-coherent.json' : './run-6.json'));
-  r.when = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+  await new Promise((r) => setTimeout(r, Number(params.get('delay') || 2500)));
+  const r = JSON.parse(await get(twirl === false ? './run-6-coherent.json' : (params.get('real') ? './run-ionq.json' : './run-6.json')));
+  if (!params.get('real')) r.when = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC'; else r.recorded = true;
   return JSON.stringify(r);
 });
 
