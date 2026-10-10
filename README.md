@@ -9,12 +9,15 @@
 
 Press **Run**, pick a machine (an IonQ trapped-ion noise model, one of IBM's eight superconducting noise models, or an ideal simulator), then press **Run the experiment** on the page. One job later you have the number the field is built on: **Λ**, the factor by which each step up in code size divides the logical error. Every number is computed in your browser from the shots the machine returned.
 
+**On real IonQ hardware:** one 25-qubit job on IonQ Forte Enterprise 1, with the noise dial at 6%, gave **Λ = 2.55** (95% interval 2.20 – 2.97). The logical error per round fell from 4.1% at distance 3 to 0.25% at distance 9. Google's Willow surface code reported 2.14.
+
 This effort is supported by Qollab & IonQ.
 
 <a id="results"></a>
 
-| Machine (noise model, dial at 6%) | Kind | Qubits | Shots | Λ fitted over all distances | 95% interval |
+| Machine (noise model unless marked, dial at 6%) | Kind | Qubits | Shots | Λ fitted over all distances | 95% interval |
 |---|---|---|---|---|---|
+| IonQ Forte Enterprise 1, **real hardware** | trapped ions | 25 | 1,600 | **2.55** | 2.20 – 2.97 |
 | IonQ Forte 1 | trapped ions | 25 | 1,600 | **2.78** | 2.37 – 3.27 |
 | IonQ Aria 2 | trapped ions | 19 | 1,600 | **2.63** | 2.26 – 3.31 |
 | IonQ Forte Enterprise 1 | trapped ions | 25 | 3,200 (2 runs) | **2.47** | 2.29 – 2.75 |
@@ -99,7 +102,7 @@ The lab is built to be extended:
 
 - **A different code.** `lab/code.py` builds the circuit and `lab/dem.py` enumerates its faults. Any code whose single faults flip at most two detectors (the phase-flip code, a surface code's X or Z half) decodes with the same matcher.
 - **A different decoder.** `lab/decode.py` takes a list of weighted edges. Swap in union-find, or a decoder that uses the calibrated weights (`lab/calibrate.py`) by default.
-- **Real hardware.** Pick an IonQ quantum computer in Qollab's dialog; the page runs unchanged. Keep the shot count under 500 so IonQ's debiasing stays off and the failure statistics stay raw.
+- **Real hardware.** Pick an IonQ quantum computer in Qollab's dialog; the page runs unchanged (the Forte Enterprise 1 row above was made this way). Keep the shot count under 500 so IonQ's debiasing stays off and the failure statistics stay raw.
 - **Teaching.** Every figure reads from one JSON run, so a class can share runs (the console saves each one) and compare machines.
 
 ## Honest limits
@@ -107,7 +110,7 @@ The lab is built to be extended:
 - **Bit flips only.** A repetition code ignores phase errors, so its Λ is not a surface-code Λ. It shows the mechanism, not a full logical qubit.
 - **The dial does the heavy lifting.** With native noise alone, distance 5 fails about once in 10,000 shots on these machines.
 - **Two rounds.** Google fitted up to 50. With r = 2, ε still carries some of the start and end of the memory.
-- **Noise models are models.** IonQ says its noise-model simulators should not be used to predict hardware results.
+- **Noise models are models.** IonQ says its noise-model simulators should not be used to predict hardware results. One run is on real hardware (IonQ Forte Enterprise 1). It had 1,600 shots, and IonQ applies its default debiasing to jobs of 500 shots or more, so its counts may include that mitigation.
 - **One circuit on IonQ.** The IonQ runs use one twirled copy of the circuit, since a job holds one circuit. Local runs average four copies.
 
 ## Files

@@ -9,12 +9,12 @@ rows = []
 for r in runs:
     e = expand(r)
     f = e["sweeps"][0]["fit"]
-    rows.append((r["profile"]["family"], r["profile"]["label"].replace(" noise model", ""), r.get("twirl", True),
+    rows.append((r["profile"]["family"], r["profile"]["label"].replace(" noise model", "").replace(" (hardware)", ", **real hardware**"), r.get("twirl", True),
                  f["lam"], f["lo"], f["hi"], r["qubits"], r["shots_per_circuit"] * r["circuits"], r.get("runs", 1)))
 order = {"ionq": 0, "ibm": 1, "ideal": 2}
-rows.sort(key=lambda x: (order[x[0]], not x[2], -x[3]))
+rows.sort(key=lambda x: (order[x[0]], "hardware" not in x[1], not x[2], -x[3]))
 fam = {"ionq": "trapped ions", "ibm": "superconducting", "ideal": "no noise"}
-lines = ["| Machine (noise model, dial at 6%) | Kind | Qubits | Shots | Λ fitted over all distances | 95% interval |",
+lines = ["| Machine (noise model unless marked, dial at 6%) | Kind | Qubits | Shots | Λ fitted over all distances | 95% interval |",
          "|---|---|---|---|---|---|"]
 for fm, lab, tw, l, lo, hi, q, sh, n in rows:
     name = lab + ("" if tw else ", **twirling off**")
