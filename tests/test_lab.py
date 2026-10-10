@@ -251,3 +251,23 @@ def test_window_of_a_big_code_is_a_small_code():
     pr = predict(Spec(3, 2, q=q), Noise(q=q), shots=40000)
     exp = pr["fail_mwpm"] / pr["shots"]
     assert abs(fails / n - exp) < 4 * math.sqrt(exp / 6000) + 0.006, (fails / n, exp)
+
+
+def test_reuse_without_reset_matches_with_reset():
+    """Un-reset ancillas, read as XORs of consecutive rounds, give the same rate."""
+    from lab.code import unreset
+    q = 0.06
+    rates = []
+    for reset in (True, False):
+        specs = [Spec(5, 3, q=q, logical=k % 2, layout="reuse", twirl=k + 1, reset=reset) for k in range(4)]
+        sim = AerSimulator(seed_simulator=21)
+        res = sim.run([transpile(build_circuit(s), sim, optimization_level=0) for s in specs], shots=3000).result()
+        dec = Matching(specs[0], Noise(q=q))
+        f = n = 0
+        for i, spec in enumerate(specs):
+            for k, c in res.get_counts(i).items():
+                bits = unreset(spec, bits_from_key(k, spec.clbits))
+                fired = tuple(j for j, v in enumerate(detectors(spec, bits)) if v)
+                f += c * (dec.decode(fired) != observable(spec, bits)); n += c
+        rates.append(f / n)
+    assert abs(rates[0] - rates[1]) < 0.012, rates

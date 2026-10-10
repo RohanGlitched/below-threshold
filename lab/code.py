@@ -48,6 +48,7 @@ class Spec:
     logical: int = 0        # prepared logical value, 0 or 1
     layout: str = "unrolled"
     twirl: int = 0          # 0: every dial rotation +theta; k > 0: random signs, instance k
+    reset: bool = True      # reuse layout only: reset ancillas between rounds
 
     @property
     def checks(self) -> int:
@@ -133,7 +134,7 @@ def build_circuit(spec: Spec) -> QuantumCircuit:
                 if theta:
                     rot(ancilla(t, i))
                 qc.measure(ancilla(t, i), anc_bit(spec, t, i))
-            if t < r - 1:
+            if t < r - 1 and spec.reset:
                 for i in range(d - 1):
                     qc.reset(ancilla(t, i))
         qc.barrier()
@@ -219,3 +220,19 @@ def window_map(full: Spec, j: int, dw: int) -> list[int]:
 
 def window_bits(full: Spec, j: int, dw: int, bits: list[int]) -> list[int]:
     return [bits[k] for k in window_map(full, j, dw)]
+
+
+def unreset(spec: Spec, bits: list[int]) -> list[int]:
+    """Syndromes from ancillas that were never reset.
+
+    Without a reset, an ancilla keeps its last reading and each new round's
+    parity is added to it, so the round-t syndrome is the XOR of the readings
+    of rounds t and t - 1. Machines without a reset instruction (IBM's
+    Nighthawk models) run the reuse layout this way."""
+    if spec.layout != "reuse" or spec.reset:
+        return bits
+    out = list(bits)
+    for t in range(spec.r - 1, 0, -1):
+        for i in range(spec.d - 1):
+            out[anc_bit(spec, t, i)] = bits[anc_bit(spec, t, i)] ^ bits[anc_bit(spec, t - 1, i)]
+    return out

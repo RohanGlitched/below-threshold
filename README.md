@@ -25,11 +25,15 @@ This effort is supported by Qollab & IonQ.
 | IBM Boston | superconducting | 17 | 1,600 | **2.64** | 2.13 – 2.88 |
 | IBM Aachen | superconducting | 17 | 1,600 | **2.43** | 1.98 – 2.59 |
 | IBM Pittsburgh | superconducting | 17 | 1,600 | **2.23** | 1.97 – 2.55 |
+| IBM Miami | superconducting | 17 | 1,600 | **2.13** | 1.88 – 2.34 |
+| IBM Berlin | superconducting | 17 | 1,600 | **2.12** | 1.82 – 2.24 |
+| IBM Marrakesh | superconducting | 17 | 1,600 | **1.97** | 1.85 – 2.21 |
 | Built-in simulator | no noise | 19 | 1,600 | **2.94** | 2.36 – 3.77 |
+| AWS Braket local simulator | no noise | 19 | 1,600 | **2.49** | 1.95 – 2.96 |
 | *Google Willow, surface code (2024)* | superconducting | 101 | | *2.14* | ± 0.02 |
 | *Google Sycamore, repetition code (2021)* | superconducting | 21 | | *2.99* | ± 0.09 |
 
-With the dial at 6%, every machine lands between Λ ≈ 2.2 and 2.9, and each machine's own noise moves it a little. Turning twirling off on IonQ Forte Enterprise 1 drops Λ from 2.47 to 1.97: coherent errors add up and the decoder, which expects random flips, loses ground. A third independent Forte Enterprise run, launched from the page itself, gave Λ = 2.20.
+With the dial at 6%, every machine lands between Λ ≈ 2.0 and 2.9, and each machine's own noise moves it a little. Turning twirling off on IonQ Forte Enterprise 1 drops Λ from 2.47 to 1.97: coherent errors add up and the decoder, which expects random flips, loses ground. A third independent Forte Enterprise run, launched from the page itself, gave Λ = 2.20.
 
 ---
 
@@ -59,7 +63,7 @@ Typical times: about 2.5 minutes on IonQ Forte models (1,600 shots of a 25-qubit
 
 **One circuit holds every code size.** IonQ's runners on Qollab accept a single circuit per job. So the lab builds the largest repetition code that fits (distance 9, 25 qubits, on the IonQ models) and reads the smaller codes out of it. Any `d` neighbouring data qubits and the checks between them form a complete distance-`d` memory with the same noise. Google compared distance-3 corners of its distance-5 surface code the same way (Nature 614, 676, 2023). The distance-9 code holds seven distance-3s, five distance-5s and three distance-7s. Rates use every window, while error bars count only non-overlapping windows.
 
-**Syndromes without mid-circuit measurement.** Qollab's IonQ path measures once, at the end. Every round therefore gets fresh ancillas, read at the end: an ancilla that is never touched again gives the same statistics whether it is read now or later (deferred measurement). That costs `d + r(d-1)` qubits, so 25 for d = 9 with r = 2 rounds. On IBM's noise models the ancillas are measured and reset every round, as on real superconducting chips, and the code is laid along a line of neighbouring qubits, so it needs no SWAPs.
+**Syndromes without mid-circuit measurement.** Qollab's IonQ path measures once, at the end. Every round therefore gets fresh ancillas, read at the end: an ancilla that is never touched again gives the same statistics whether it is read now or later (deferred measurement). That costs `d + r(d-1)` qubits, so 25 for d = 9 with r = 2 rounds. On IBM's noise models the ancillas are measured and reset every round, as on real superconducting chips, and the code is laid along a line of neighbouring qubits, so it needs no SWAPs. The Nighthawk models have no reset instruction, so there the ancillas keep their last reading, and each round's syndrome is the XOR of two consecutive readings.
 
 **The noise dial, twirled.** Every machine here is far below this code's threshold, so failures at d ≥ 5 would be too rare to count. The dial adds `RX(θ)` with $\sin^2(\theta/2) = q$ on every data qubit before each round and on every ancilla before readout. A coherent rotation is not a random flip, because amplitudes add up before they are squared (about 30% more failures at d = 3). So every rotation gets a random sign ($Z\,RX(\theta)\,Z = RX(-\theta)$), which is Pauli twirling, also called randomized compiling. Averaged over copies, it is exactly the random-flip channel the decoder assumes; the lab tests this against Qiskit Aer.
 
@@ -89,6 +93,15 @@ The lab learns every edge of the graph from your shots and shows how much noise 
 | 6. The same experiment on every machine | Λ with intervals for every machine recorded on Qollab |
 | 7. Coherent errors add up | the same machine with and without twirling, against the model |
 
+## Fork it
+
+The lab is built to be extended:
+
+- **A different code.** `lab/code.py` builds the circuit and `lab/dem.py` enumerates its faults. Any code whose single faults flip at most two detectors (the phase-flip code, a surface code's X or Z half) decodes with the same matcher.
+- **A different decoder.** `lab/decode.py` takes a list of weighted edges. Swap in union-find, or a decoder that uses the calibrated weights (`lab/calibrate.py`) by default.
+- **Real hardware.** Pick an IonQ quantum computer in Qollab's dialog; the page runs unchanged. Keep the shot count under 500 so IonQ's debiasing stays off and the failure statistics stay raw.
+- **Teaching.** Every figure reads from one JSON run, so a class can share runs (the console saves each one) and compare machines.
+
 ## Honest limits
 
 - **Bit flips only.** A repetition code ignores phase errors, so its Λ is not a surface-code Λ. It shows the mechanism, not a full logical qubit.
@@ -116,6 +129,10 @@ tests/                           20 checks against Qiskit Aer (not needed on Qol
 ```
 
 Tests (local Python with `qiskit`, `qiskit-aer`, `networkx`): `python -m pytest tests -q`. They check that windows decode like standalone codes, that the twirled dial matches the model on Aer, that coherent rotations are worse, that single faults are always corrected, and that the exact matcher agrees with blossom.
+
+## Built for the Qollab x IonQ hackathon
+
+Everything here was written during the build window (October 10–12, 2026), with no earlier code: the lab, the decoders, the page, the recorded runs and the tests. Theme: **Quantum Unlocked**, teaching a hard topic interactively.
 
 ## References
 

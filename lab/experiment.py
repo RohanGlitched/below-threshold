@@ -15,7 +15,7 @@ import json
 import math
 import time
 
-from .code import Spec, build_circuit, bits_from_key, detectors, observable, window_bits
+from .code import Spec, build_circuit, bits_from_key, detectors, observable, window_bits, unreset
 from .dem import Noise, edge_kind, detector_error_model
 from .decode import Matching, majority
 from .sim import predict
@@ -87,6 +87,10 @@ def profile(backend) -> dict:
         p.update(family="ibm", hardware=False, model=key,
                  label=f"IBM {dev.title() if dev else name} noise model", layout="reuse", one_job=False)
         p["max_qubits"] = 25
+        try:
+            p["reset"] = "reset" in set(backend.target.operation_names)
+        except Exception:
+            p["reset"] = True
     elif "braket" in low or "braket" in cls.lower():
         # A 25-qubit statevector is 512 MB in the browser: keep local ideal runs small.
         p.update(family="ideal", hardware=False, model="ideal", label="AWS Braket local simulator",
@@ -129,7 +133,7 @@ def plan(prof: dict, ds, r: int, qs, instances: int = 4, twirl: bool = True):
     for q in qs:
         for k in range(n):
             specs.append(Spec(dmax, r, q=q, logical=k % 2, layout=layout,
-                              twirl=(k + 1) if (twirl and q > 0) else 0))
+                              twirl=(k + 1) if (twirl and q > 0) else 0, reset=prof.get("reset", True)))
     return specs, sorted(fit), dropped
 
 
@@ -161,8 +165,10 @@ def _transpile_for(backend, prof, circuits):
     return circuits
 
 
-def _line(backend, n):
-    """A simple path of n physical qubits, found by depth-first search."""
+def _line(backend, n, budget=20000):
+    """A simple path of n physical qubits, found by depth-first search with a
+    step budget (square lattices have many dead ends); None lets the
+    transpiler place the circuit itself."""
     try:
         cmap = backend.coupling_map
         if cmap is None:
@@ -173,26 +179,31 @@ def _line(backend, n):
             adj.setdefault(b, set()).add(a)
     except Exception:
         return None
-    starts = sorted(adj, key=lambda v: len(adj[v]))
-    for s in starts[:40]:
-        path, seen = [s], {s}
-        if _dfs(adj, path, seen, n):
+    steps = [0]
+
+    def dfs(path, seen):
+        if len(path) == n:
+            return True
+        steps[0] += 1
+        if steps[0] > budget:
+            return False
+        for nb in sorted(adj[path[-1]], key=lambda v: len(adj[v])):
+            if nb not in seen:
+                path.append(nb)
+                seen.add(nb)
+                if dfs(path, seen):
+                    return True
+                path.pop()
+                seen.discard(nb)
+        return False
+
+    for s0 in sorted(adj, key=lambda v: len(adj[v]))[:40]:
+        path = [s0]
+        if dfs(path, {s0}):
             return path
+        if steps[0] > budget:
+            break
     return None
-
-
-def _dfs(adj, path, seen, n, budget=[0]):
-    if len(path) == n:
-        return True
-    for nb in sorted(adj[path[-1]], key=lambda v: len(adj[v])):
-        if nb not in seen:
-            path.append(nb)
-            seen.add(nb)
-            if _dfs(adj, path, seen, n):
-                return True
-            path.pop()
-            seen.discard(nb)
-    return False
 
 
 def _counts_list(result, n):
@@ -216,7 +227,7 @@ def analyze(prof, specs, counts_list, r, qs, ds, predict_shots=20000):
     for spec, counts in zip(specs, counts_list):
         dmax = spec.d
         noise = Noise(p2=p2, pm=pm, q=spec.q)
-        parsed = [(bits_from_key(k, spec.clbits), c) for k, c in counts.items()]
+        parsed = [(unreset(spec, bits_from_key(k, spec.clbits)), c) for k, c in counts.items()]
         total = sum(c for _b, c in parsed)
         for dw in ds:
             sub = Spec(dw, r, q=spec.q, logical=spec.logical, layout=layout)
