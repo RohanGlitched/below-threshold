@@ -35,7 +35,6 @@ console.log('Below threshold: loading the lab…');
 // to end on Qollab. Nothing else listens or answers.
 globalThis.addEventListener('message', (e) => {
   if (!e.data || typeof e.data.bt !== 'string') return;
-  console.log('Below threshold: test hook', e.data.bt);
   if (e.data.bt === 'run') runExperiment();
   const fit = state.run && state.run.sweeps && state.run.sweeps[0].fit;
   (e.source || window.parent).postMessage({ bt: 'state', status: $('status').textContent, live: state.live,
@@ -322,7 +321,7 @@ async function runExperiment() {
     renderAll();
     const secs = Math.round((performance.now() - t0) / 1000);
     const fit = res.sweeps[0].fit;
-    setStatus(`Done in ${secs} s: ${res.circuits} circuits, one job${fit ? `, Λ = ${fit.lam.toFixed(2)}` : ''}. Your run is also saved in the console as a JSON file.`, 'done');
+    setStatus(`Done in ${secs} s: ${res.circuits === 1 ? 'one circuit' : res.circuits + ' circuits'}, one job${fit ? `, Λ = ${fit.lam.toFixed(2)}` : ''}. Your run is also saved in the console as a JSON file.`, 'done');
     console.log(`Run finished in ${secs} s on ${prof.label}: ` + res.sweeps[0].rows.map((r) => `d=${r.d} ${r.fail_mwpm}/${r.shots} fail`).join(', ') + (fit ? `; Λ = ${fit.lam.toFixed(2)} (${fit.lo ? fit.lo.toFixed(2) : '?'}–${fit.hi ? fit.hi.toFixed(2) : '?'})` : ''));
     document.getElementById('fig-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (err) {
