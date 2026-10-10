@@ -1,10 +1,17 @@
+<p align="center"><img src="docs/cover.png" alt="Below threshold: reproduce the result behind Google's Willow chip on IonQ and IBM noise models, in your browser" width="100%"></p>
+
 # Below threshold
+
+**[Run it on Qollab](https://qollab.xyz/u/master/below-threshold)** · **[How it works](#what-happens-in-one-run)** · **[Results](#results)** · MIT
+
 
 **Reproduce the result behind Google's Willow chip, a logical qubit that gets better as it grows, on whichever machine you pick in Qollab's runner.**
 
 Press **Run**, pick a machine (an IonQ trapped-ion noise model, one of IBM's eight superconducting noise models, or an ideal simulator), then press **Run the experiment** on the page. One job later you have the number the field is built on: **Λ**, the factor by which each step up in code size divides the logical error. Every number is computed in your browser from the shots the machine returned.
 
 This effort is supported by Qollab & IonQ.
+
+<a id="results"></a>
 
 | Machine (dial at 6%) | Λ, fitted over d = 3…9 | 95% interval |
 |---|---|---|

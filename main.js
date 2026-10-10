@@ -35,7 +35,12 @@ console.log('Below threshold: loading the lab…');
 // to end on Qollab. Nothing else listens or answers.
 globalThis.addEventListener('message', (e) => {
   if (!e.data || typeof e.data.bt !== 'string') return;
-  if (e.data.bt === 'run') runExperiment();
+  if (e.data.bt === 'run') runExperiment(e.data.shots);
+  if (e.data.bt === 'dump' && state.run) {
+    const { graph, ...rest } = state.run;
+    (e.source || window.parent).postMessage({ bt: 'dump', run: JSON.stringify(rest) }, '*');
+    return;
+  }
   const fit = state.run && state.run.sweeps && state.run.sweeps[0].fit;
   (e.source || window.parent).postMessage({ bt: 'state', status: $('status').textContent, live: state.live,
     machine: state.info && state.info.profile.label, lambda: fit ? fit.lam : null,
@@ -283,7 +288,7 @@ function wireControls() {
   });
 }
 
-async function runExperiment() {
+async function runExperiment(shotsOverride) {
   const prof = state.info.profile;
   console.log(`Running the experiment on ${prof.label}…`);
   if (prof.one_job && state.sentJob) {
@@ -291,7 +296,7 @@ async function runExperiment() {
     return;
   }
   const q = Number($('dial').value) / 100;
-  const shots = Number($('shots').value);
+  const shots = Number(shotsOverride) > 0 ? Number(shotsOverride) : Number($('shots').value);
   const twirl = $('twirl').checked;
   const fits = state.info.distances.filter((f) => f.fits);
   const circuits = prof.one_job ? 1 : 4;
