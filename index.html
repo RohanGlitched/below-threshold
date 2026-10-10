@@ -180,7 +180,7 @@
     <div class="fig-head">
       <p class="fig-no">Figure 6</p>
       <h2 id="atlas-h">The same experiment on every machine</h2>
-      <p class="fig-source" id="atlas-source">Recorded on Qollab's runners, dial at 6%, matching decoder.</p>
+      <p class="fig-source" id="atlas-source">Recorded on Qollab's runners, dial at 6%, matching decoder. Axis from Λ = 0.5 to 4.5: the red tick is Λ = 1, the threshold; the dotted line is Willow's 2.14.</p>
     </div>
     <div class="atlas" id="atlas" role="table" aria-label="Λ measured on each machine"></div>
     <p class="note">Every machine lands near Λ ≈ 2–3 with the dial at 6%: the dial dominates, and each machine's own noise pulls its Λ down a little. Ions need no swaps, since any two can be entangled directly. On IBM's grids the code is laid along a line of neighbouring qubits, which also needs none, but the ions pay in time: a gate takes about 0.6&nbsp;ms on an ion and 0.07&nbsp;µs on a superconducting chip.</p>
@@ -195,9 +195,9 @@
     <div class="twirl-grid">
       <svg id="chart-twirl" class="chart" role="img" aria-labelledby="twirl-cap"></svg>
       <div>
-        <p>The dial is a small rotation, not a coin toss. When every rotation turns the same way, their amplitudes add before they are squared, and the matching decoder, which assumes independent random flips, fails more often than the model predicts.</p>
-        <p>Pauli twirling fixes it: a Z gate before a rotation reverses it, so each copy of the circuit draws a random sign for every rotation. Averaged over four copies, the errors become exactly the random flips the decoder expects. The same trick, randomized compiling, is used on real hardware.</p>
-        <p class="aside" id="twirl-cap">Logical error per shot at distance 3 and 5, dial at 6%: every rotation the same way, randomly signed, and the model's prediction.</p>
+        <p>The dial is a small rotation, not a coin toss. When every rotation turns the same way, their amplitudes add before they are squared, and the matching decoder, which assumes independent random flips, fails more often. The bigger the code, the more steps there are for the rotations to add up.</p>
+        <p>Pauli twirling fixes it: a Z gate before a rotation reverses it, so each copy of the circuit draws a random sign for every rotation. Averaged over copies, the errors become exactly the random flips the decoder expects; even one randomly signed copy, as on IonQ, recovers most of the loss. The same trick, randomized compiling, is used on real hardware.</p>
+        <p class="aside" id="twirl-cap">Logical error per shot, with every rotation the same way and with random signs.</p>
       </div>
     </div>
   </section>

@@ -209,15 +209,15 @@ function renderTwirlFigure() {
     $('twirl-source').textContent = 'Turn twirling off and run to see the difference on your machine.';
     return;
   }
-  const model = ((state.info.theory || {}).models || {})[coh.profile.model] || [];
-  const groups = [3, 5].map((d) => {
-    const c = coh.sweeps[0].rows.find((x) => x.d === d);
-    const t = tw.sweeps[0].rows.find((x) => x.d === d);
-    const m = model.find((x) => x.d === d && Math.abs(x.q - 0.06) < 1e-9);
-    return c && t ? { label: `d = ${d}`, bars: [{ v: c.P_mwpm }, { v: t.P_mwpm }, { v: m ? m.P_mwpm : 0 }] } : null;
+  const groups = coh.sweeps[0].rows.map((c) => {
+    const t = tw.sweeps[0].rows.find((x) => x.d === c.d);
+    return t ? { d: c.d, coh: c.P_mwpm, tw: t.P_mwpm } : null;
   }).filter(Boolean);
   renderTwirl(svg, groups);
+  const last = groups[groups.length - 1];
+  const fc = coh.sweeps[0].fit, ft = tw.sweeps[0].fit;
   $('twirl-source').textContent = `Measured on ${shortName(coh.profile.label)}, dial at 6%, matching decoder.`;
+  $('twirl-cap').textContent = `Logical error per shot, with every rotation the same way and with random signs. The cost of coherence grows with the code: ${last ? `${(last.coh / last.tw).toFixed(1)}× more failures at distance ${last.d}` : ''}${fc && ft ? `, and Λ falls from ${ft.lam.toFixed(2)} to ${fc.lam.toFixed(2)}` : ''}.`;
 }
 
 // --------------------------------------------------------------- one shot

@@ -172,34 +172,32 @@ export function crossing(rows) {
   return null;
 }
 
-// Figure 5: coherent vs twirled vs model, grouped bars.
+// Figure 7: coherent vs twirled at every distance, log scale, with the ratio.
 export function renderTwirl(svg, groups) {
-  const w = 520, h = 300;
+  const w = 620, h = 330;
   const f = frame(svg, w, h);
-  const vals = groups.flatMap((g) => g.bars.map((b) => b.v));
-  const hi = Math.max(0.02, ...vals) * 1.15;
-  const y = linear(0, hi, f.y0, f.y1);
-  for (let t = 0; t <= hi; t += hi > 0.1 ? 0.04 : 0.02) {
-    el('line', { x1: f.x0, x2: f.x1, y1: y(t), y2: y(t), stroke: 'var(--line-soft)' }, svg);
-    el('text', { x: f.x0 - 8, y: y(t) + 4, 'text-anchor': 'end', text: fmtPct(t) }, svg);
-  }
-  el('text', { class: 'axis-title', x: 14, y: (f.y0 + f.y1) / 2, transform: `rotate(-90 14 ${(f.y0 + f.y1) / 2})`, 'text-anchor': 'middle', text: 'Logical error per shot' }, svg);
+  const vals = groups.flatMap((g) => [g.coh, g.tw]).filter((v) => v > 0);
+  const [lo, hi] = bounds(vals, 1.8);
+  const y = log10(lo, hi, f.y0, f.y1);
+  yAxisLog(svg, f, y, lo, hi, 'Logical error per shot');
   const gw = (f.x1 - f.x0) / groups.length;
-  const fills = ['var(--event)', 'var(--glow)', 'transparent'];
-  groups.forEach((g, gi) => {
-    const bw = Math.min(42, gw / 4.2);
-    g.bars.forEach((b, bi) => {
-      const cx = f.x0 + gw * gi + gw / 2 + (bi - 1) * (bw + 6);
-      const top = y(b.v);
-      el('rect', { x: cx - bw / 2, y: top, width: bw, height: Math.max(0, f.y0 - top), rx: 3, fill: fills[bi], stroke: bi === 2 ? 'var(--ink-3)' : 'none', 'stroke-dasharray': bi === 2 ? '4 3' : null }, svg);
-      el('text', { x: cx, y: top - 6, 'text-anchor': 'middle', text: fmtPct(b.v), fill: 'var(--ink-2)' }, svg);
+  const bw = Math.min(40, gw / 3.4);
+  groups.forEach((g, i) => {
+    const cx = f.x0 + gw * i + gw / 2;
+    [[g.coh, 'var(--event)', -1], [g.tw, 'var(--glow)', 1]].forEach(([v, c, side]) => {
+      if (!(v > 0)) return;
+      const x = cx + side * (bw / 2 + 3) - bw / 2;
+      el('rect', { x, y: y(v), width: bw, height: Math.max(1, f.y0 - y(v)), rx: 3, fill: c }, svg);
     });
-    el('text', { x: f.x0 + gw * gi + gw / 2, y: f.y0 + 20, 'text-anchor': 'middle', text: g.label, fill: 'var(--ink-2)' }, svg);
+    if (g.coh > 0 && g.tw > 0) {
+      el('text', { x: cx, y: Math.min(y(g.coh), y(g.tw)) - 10, 'text-anchor': 'middle', text: `${(g.coh / g.tw).toFixed(1)}×`, fill: 'var(--ink)', 'font-weight': 600 }, svg);
+    }
+    el('text', { x: cx, y: f.y0 + 20, 'text-anchor': 'middle', text: `d = ${g.d}`, fill: 'var(--ink-2)' }, svg);
   });
-  const lg = el('g', { transform: `translate(${f.x0 + 4}, ${h - 10})` }, svg);
-  [['All the same way', fills[0]], ['Twirled', fills[1]], ['Model', 'none']].forEach(([t, c], i) => {
-    el('rect', { x: i * 150, y: -9, width: 10, height: 10, rx: 2, fill: c, stroke: i === 2 ? 'var(--ink-3)' : 'none' }, lg);
-    el('text', { x: i * 150 + 16, y: 0, text: t }, lg);
+  const lg = el('g', { transform: `translate(${f.x0 + 6}, ${f.y1 + 4})` }, svg);
+  [['Every rotation the same way', 'var(--event)'], ['Twirled', 'var(--glow)']].forEach(([t, c], i) => {
+    el('rect', { x: i * 220, y: 0, width: 11, height: 11, rx: 2, fill: c }, lg);
+    el('text', { x: i * 220 + 17, y: 10, text: t }, lg);
   });
 }
 
