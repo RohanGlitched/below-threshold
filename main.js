@@ -44,6 +44,7 @@ globalThis.addEventListener('message', (e) => {
   const fit = state.run && state.run.sweeps && state.run.sweeps[0].fit;
   (e.source || window.parent).postMessage({ bt: 'state', status: $('status').textContent, live: state.live,
     machine: state.info && state.info.profile.label, lambda: fit ? fit.lam : null,
+    atlas: state.info && state.info.atlas ? state.info.atlas.runs.length : 0,
     rows: state.run ? state.run.sweeps[0].rows.map((r) => [r.d, r.fail_mwpm, r.shots]) : null }, '*');
 });
 try {
@@ -91,7 +92,9 @@ function pickRecorded() {
   const runs = (state.info.atlas && state.info.atlas.runs) || [];
   const model = state.info.profile.model;
   const usable = runs.filter((r) => r.ok && r.twirl !== false && r.samples && r.samples.length);
-  return usable.find((r) => r.profile.model === model && Math.abs(r.qs[0] - 0.06) < 1e-9)
+  const label = state.info.profile.label;
+  return usable.find((r) => r.profile.label === label && Math.abs(r.qs[0] - 0.06) < 1e-9)
+    || usable.find((r) => r.profile.model === model && Math.abs(r.qs[0] - 0.06) < 1e-9)
     || usable.find((r) => r.profile.model === 'forte-enterprise-1')
     || usable[0] || null;
 }
