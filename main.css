@@ -121,6 +121,14 @@
 .numbers .bad { color: var(--fail); }
 
 /* ------------------------------------------------------- one shot (camera) */
+.trap3d-wrap { position: relative; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: #05070b; margin-bottom: 10px; }
+.trap3d { height: 300px; width: 100%; }
+.trap3d.no-webgl { display: none; }
+.trap3d-bar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 12px; align-items: center; justify-content: space-between;
+  padding: 10px 12px 10px 16px; background: linear-gradient(transparent, rgba(5, 7, 11, 0.92) 40%); }
+.trap3d-label { font-size: 13px; color: var(--ink-2); min-height: 1.4em; }
+.trap3d-bar .chip-btn { flex: none; min-width: 84px; background: rgba(18, 24, 35, 0.8); }
+.trap .camera-note, .trap3d-wrap + .camera-note { margin-bottom: 14px; }
 .trap { position: relative; display: grid; gap: 10px; }
 .camera { width: 100%; height: 150px; display: block; border-radius: var(--r); background: #05070b; border: 1px solid var(--line); }
 .camera-note { font-size: 13px; color: var(--ink-3); max-width: 76ch; }
@@ -186,7 +194,7 @@
 
 /* -------------------------------------------------------------- how, limits */
 .how, .limits { padding: 40px 0; border-bottom: 1px solid var(--line); }
-.steps { list-style: none; margin: 22px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; counter-reset: step; }
+.steps { list-style: none; margin: 22px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; counter-reset: step; }
 .steps li { counter-increment: step; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 8px; align-content: start; }
 .steps li::before { content: counter(step); font-family: var(--serif); font-size: 26px; color: var(--glow); line-height: 1; }
 .steps h3 { font-size: 18px; }
@@ -216,9 +224,18 @@
   .atlas-row { grid-template-columns: minmax(0, 1fr) 90px; }
   .atlas-row .atlas-bar-cell, .atlas-row .atlas-d3 { display: none; }
   .camera { height: 120px; }
+  .trap3d { height: 220px; }
 }
 @media (max-width: 480px) {
   .controls { grid-template-columns: 1fr; }
+}
+/* charts are drawn in a fixed coordinate space; on phones their labels need
+   to be larger in those units to stay readable once scaled down */
+@media (max-width: 640px) {
+  .chart text { font-size: 19px; }
+  .chart .axis-title { font-size: 19px; }
+  .graph text, .game text { font-size: 17px; }
+  .ruler .chart text { font-size: 11.5px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bt * { transition: none !important; animation: none !important; }

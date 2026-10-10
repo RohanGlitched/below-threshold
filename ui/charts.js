@@ -213,28 +213,36 @@ export const KIND_LABEL = {
 
 export function renderCal(svg, cal) {
   const kinds = ['space', 'time', 'boundary', 'diagonal'].filter((k) => cal.kinds.learned[k] !== undefined);
-  const w = 620, rowH = 58, h = 30 + kinds.length * rowH + 30;
+  const narrow = (svg.parentElement ? svg.parentElement.getBoundingClientRect().width : 600) < 520;
+  const w = 620, rowH = narrow ? 96 : 58, h = 30 + kinds.length * rowH + 34;
   clear(svg);
   size(svg, w, h);
   const vals = kinds.flatMap((k) => [cal.kinds.learned[k], cal.kinds.prior[k] || 0, (cal.kinds.dial || {})[k] || 0]);
   const hi = Math.max(0.02, ...vals) * 1.18;
-  const x0 = 210, x1 = w - 60;
+  const x0 = narrow ? 4 : 210, x1 = w - (narrow ? 110 : 60);
   const x = linear(0, hi, x0, x1);
   for (let t = 0; t <= hi + 1e-9; t += hi > 0.06 ? 0.02 : 0.01) {
-    el('line', { x1: x(t), x2: x(t), y1: 18, y2: h - 26, stroke: 'var(--line-soft)' }, svg);
+    el('line', { x1: x(t), x2: x(t), y1: 18, y2: h - 30, stroke: 'var(--line-soft)' }, svg);
     el('text', { x: x(t), y: h - 8, 'text-anchor': 'middle', text: fmtPct(t) }, svg);
   }
   kinds.forEach((k, i) => {
-    const y = 30 + i * rowH;
+    const y0 = 30 + i * rowH;
     const [a, b] = KIND_LABEL[k];
-    el('text', { x: 0, y: y + 14, text: a, fill: 'var(--ink)', 'font-size': 13 }, svg);
-    el('text', { x: 0, y: y + 31, text: b }, svg);
+    let y = y0;
+    if (narrow) {
+      el('text', { x: 4, y: y0 + 4, text: a, fill: 'var(--ink)' }, svg);
+      y = y0 + 22;
+    } else {
+      el('text', { x: 0, y: y0 + 14, text: a, fill: 'var(--ink)', 'font-size': 13 }, svg);
+      el('text', { x: 0, y: y0 + 31, text: b }, svg);
+    }
     const dial = (cal.kinds.dial || {})[k] || 0;
     const lv = cal.kinds.learned[k];
     const pv = cal.kinds.prior[k] || 0;
-    el('rect', { x: x0, y: y + 4, width: Math.max(1, x(lv) - x0), height: 22, rx: 3, fill: 'var(--glow)', opacity: 0.85 }, svg);
-    if (dial > 0) el('rect', { x: x0, y: y + 1, width: Math.max(1, x(dial) - x0), height: 28, rx: 3, fill: 'none', stroke: 'var(--event)', 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }, svg);
-    el('line', { x1: x(pv), x2: x(pv), y1: y - 2, y2: y + 32, stroke: 'var(--ink-2)', 'stroke-width': 2 }, svg);
-    el('text', { x: Math.max(x(lv), x(pv), x(dial)) + 8, y: y + 20, text: fmtPct(lv), fill: 'var(--ink)' }, svg);
+    const bh = narrow ? 34 : 22;
+    el('rect', { x: x0, y: y + 4, width: Math.max(1, x(lv) - x0), height: bh, rx: 3, fill: 'var(--glow)', opacity: 0.85 }, svg);
+    if (dial > 0) el('rect', { x: x0, y: y + 1, width: Math.max(1, x(dial) - x0), height: bh + 6, rx: 3, fill: 'none', stroke: 'var(--event)', 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }, svg);
+    el('line', { x1: x(pv), x2: x(pv), y1: y - 2, y2: y + bh + 10, stroke: 'var(--ink-2)', 'stroke-width': 2 }, svg);
+    el('text', { x: Math.max(x(lv), x(pv), x(dial)) + 8, y: y + 4 + bh * 0.7, text: fmtPct(lv), fill: 'var(--ink)' }, svg);
   });
 }

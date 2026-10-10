@@ -78,8 +78,16 @@
     <div class="fig-head">
       <p class="fig-no">Figure 2</p>
       <h2 id="shot-h">One shot, from ions to answer</h2>
-      <p class="fig-source">Real shots from the run above, at the largest distance.</p>
+      <p class="fig-source">Real shots from the run above, on the full distance-9 code (distance 7 on smaller machines).</p>
     </div>
+    <div class="trap3d-wrap">
+      <div class="trap3d" id="trap3d" aria-hidden="true"></div>
+      <div class="trap3d-bar">
+        <p class="trap3d-label" id="trap3d-label" aria-live="off">&nbsp;</p>
+        <button type="button" class="chip-btn" id="trap3d-play" aria-pressed="true">Pause</button>
+      </div>
+    </div>
+    <p class="camera-note">The circuit as the ions see it, replayed gate by gate: every CNOT is a pair of laser beams on two ions, entangled through the motion the whole chain shares, so any two ions can talk without swaps. A Forte gate takes about 0.65&nbsp;ms; this replay is slowed to about a quarter second per gate.</p>
     <div class="trap">
       <canvas id="camera" class="camera" aria-hidden="true"></canvas>
       <p class="camera-note">Each qubit is one ion. At readout a laser makes ions in state 1 glow and leaves ions in state 0 dark, so a measurement looks like a string of pearls with gaps. (False colour: the real light is ultraviolet, 369.5&nbsp;nm.)</p>
@@ -199,7 +207,8 @@
     <ol class="steps">
       <li><h3>Store one bit in many qubits</h3><p>The repetition code copies a logical 0 into d data qubits (000… ) or a logical 1 (111…). Distance d survives up to (d − 1)/2 flips.</p></li>
       <li><h3>Check neighbours, not values</h3><p>Each round, an ancilla records whether two neighbouring data qubits agree, without reading either. Qollab's IonQ path can only measure at the end, so every round gets fresh ancillas, read at the end; reading an untouched qubit later gives the same statistics. On IBM's noise models the ancillas are measured and reset every round, as Google does.</p></li>
-      <li><h3>Turn the dial</h3><p>A rotation on every data qubit before each round, and on every ancilla before it is read, flips it with probability q. All circuits, at every size, go to the machine as one job, because IonQ's runners accept one job per run.</p></li>
+      <li><h3>Turn the dial</h3><p>A rotation on every data qubit before each round, and on every ancilla before it is read, flips it with probability q. Each rotation gets a random sign (Pauli twirling), so coherent errors become the random flips the decoder expects.</p></li>
+      <li><h3>One circuit, every size</h3><p>IonQ's runners take one job of one circuit. So the lab builds the biggest code that fits, distance 9 in 25 qubits, and reads every smaller code out of it: any d neighbouring data qubits and the checks between them are a complete distance-d memory, with the same noise.</p></li>
       <li><h3>Decode</h3><p>From the circuit, the lab lists every single fault and the detection events it would cause (a detector error model). Minimum-weight perfect matching finds the most likely set of faults behind each shot; majority vote looks only at the final data. Each distinct bitstring is decoded once.</p></li>
       <li><h3>Measure Λ</h3><p>The failure rate becomes an error per round, ε = (1 − (1 − 2P)<sup>1/r</sup>)/2, as in Google's 2021 paper; Λ is the ratio between neighbouring distances, fitted across all of them, with 95% intervals from 2,000 bootstrap resamples.</p></li>
     </ol>

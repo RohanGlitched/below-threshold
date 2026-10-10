@@ -8,7 +8,7 @@ This effort is supported by Qollab & IonQ.
 
 | Machine (dial at 6%) | Λ, fitted over d = 3…9 | 95% interval |
 |---|---|---|
-| IonQ Forte Enterprise 1 noise model | **2.36** | 2.07 – 2.63 |
+| IonQ Forte Enterprise 1 noise model (2 runs, 3,200 shots) | **2.47** | 2.29 – 2.75 |
 | IonQ Forte 1 noise model | **2.78** | 2.37 – 3.27 |
 | Google Willow (surface code, 2024) | 2.14 | ± 0.02 |
 | Google Sycamore (repetition code, 2021) | 2.99 | ± 0.09 |

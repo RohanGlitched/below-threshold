@@ -7,10 +7,20 @@ import { Camera, renderGraph, describeShot } from './ui/shot.js';
 import { renderAtlas, shortName } from './ui/atlas.js';
 import { fmtPct } from './ui/svg.js';
 import { Game } from './ui/game.js';
+import { Trap3D } from './ui/trap3d.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { info: null, run: null, live: false, shot: 0, timer: 0, playing: true, sentJob: false };
 const camera = new Camera($('camera'));
+let trap = null;
+try {
+  trap = new Trap3D($('trap3d'), $('trap3d-label'));
+  if (!trap.ok) trap = null;
+  window.__bt = { trap };
+} catch (err) {
+  console.warn('3D trap unavailable:', err);
+  $('trap3d').classList.add('no-webgl');
+}
 
 const FAMILY_TEXT = {
   ionq: 'Trapped ytterbium ions · IonQ cloud',
@@ -18,10 +28,29 @@ const FAMILY_TEXT = {
   ideal: 'No noise of its own · runs in your browser',
 };
 
-boot().catch((err) => {
+console.log('Below threshold: loading the lab…');
+
+// The page sits in Qollab's sandboxed frame. Its host page can ask for the
+// status (or press Run) with postMessage, which is how the lab is tested end
+// to end on Qollab. Nothing else listens or answers.
+globalThis.addEventListener('message', (e) => {
+  if (!e.data || typeof e.data.bt !== 'string') return;
+  console.log('Below threshold: test hook', e.data.bt);
+  if (e.data.bt === 'run') runExperiment();
+  const fit = state.run && state.run.sweeps && state.run.sweeps[0].fit;
+  (e.source || window.parent).postMessage({ bt: 'state', status: $('status').textContent, live: state.live,
+    machine: state.info && state.info.profile.label, lambda: fit ? fit.lam : null,
+    rows: state.run ? state.run.sweeps[0].rows.map((r) => [r.d, r.fail_mwpm, r.shots]) : null }, '*');
+});
+try {
+  await boot();
+} catch (err) {
   console.error(err);
   setStatus('The lab could not start: ' + (err && err.message ? err.message : String(err)), 'err');
-});
+}
+// Keep the run alive so the page can call Python again (Run the experiment,
+// the circuit drawing). Press Stop in Qollab's runner to end it.
+await new Promise(() => {});
 
 async function boot() {
   setStatus('Loading the lab…');
@@ -80,11 +109,19 @@ function renderAll() {
     const trows = ((theory.models || {})[model] || []).filter((t) => Math.abs(t.q - q) < 1e-9);
     renderEps($('chart-eps'), sweep, trows);
     const circ = run.circuits === 1 ? `one ${run.qubits}-qubit circuit` : `${run.circuits} copies of a ${run.qubits}-qubit circuit`;
-    $('result-source').textContent = `${state.live ? 'Measured just now' : 'Recorded'} on ${shortName(run.profile.label)} · ${circ}, one job · ${(run.shots_per_circuit * run.circuits).toLocaleString()} shots · dial ${Math.round(q * 100)}% · ${run.r} rounds${run.twirl === false ? ' · not twirled' : ''}${run.when ? ' · ' + run.when : ''}`;
+    $('result-source').textContent = `${state.live ? 'Measured just now' : 'Recorded'} on ${shortName(run.profile.label)} · ${circ}, one job · ${(run.shots_per_circuit * run.circuits).toLocaleString()} shots${run.runs > 1 ? ` from ${run.runs} runs, pooled` : ''} · dial ${Math.round(q * 100)}% · ${run.r} rounds${run.twirl === false ? ' · not twirled' : ''}${run.when ? ' · ' + run.when : ''}`;
     renderTable(sweep);
     renderCalibration(run, sweep.calibration);
     state.shot = 0;
     showShot();
+    if (trap && run.graph) {
+      trap.onReadout = () => {
+        state.shot += 1;
+        showShot();
+        return state.run.samples[state.shot % state.run.samples.length];
+      };
+      trap.load(run.graph.d, run.graph.r, run.samples[0]);
+    }
     startPlayback();
   }
   const cross = renderThreshold($('chart-thr'), (theory.square || {}).ideal || [], Number($('dial').value) / 100);
@@ -200,7 +237,7 @@ function showShot() {
 
 function startPlayback() {
   clearInterval(state.timer);
-  if (!state.playing) return;
+  if (!state.playing || trap) return; // the 3D replay advances shots at each readout
   state.timer = setInterval(() => {
     state.shot += 1;
     showShot();
@@ -219,6 +256,13 @@ function wireControls() {
   dial.addEventListener('input', syncDial);
   syncDial();
   $('go').addEventListener('click', runExperiment);
+  $('trap3d-play').addEventListener('click', (e) => {
+    if (!trap) return;
+    const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+    e.currentTarget.setAttribute('aria-pressed', String(on));
+    e.currentTarget.textContent = on ? 'Pause' : 'Play';
+    trap.setPlaying(on);
+  });
   $('shot-prev').addEventListener('click', () => { state.shot = Math.max(0, state.shot - 1); showShot(); startPlayback(); });
   $('shot-next').addEventListener('click', () => { state.shot += 1; showShot(); startPlayback(); });
   $('shot-play').addEventListener('click', (e) => {
@@ -242,6 +286,7 @@ function wireControls() {
 
 async function runExperiment() {
   const prof = state.info.profile;
+  console.log(`Running the experiment on ${prof.label}…`);
   if (prof.one_job && state.sentJob) {
     setStatus('IonQ machines take one job per run. Press Stop, then Run, to send another.', 'err');
     return;

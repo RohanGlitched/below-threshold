@@ -77,6 +77,10 @@ def profile(backend) -> dict:
         p.update(family="ionq", hardware=hardware, model=key,
                  label=_ionq_label(key, hardware), layout="unrolled", one_job=True)
         p["max_qubits"] = nq or (29 if "forte" in key else 25)
+        if key.startswith("aria"):
+            # IonQ warns that circuits at a simulator's qubit limit may fail; the
+            # 25-qubit Aria models stalled on a full-width circuit, so stay below it
+            p["max_qubits"] = min(p["max_qubits"], 21)
     elif "fake" in low or "ibm" in low or "aer" in cls.lower() and "fake" in cls.lower():
         dev = next((k for k in IBM_REV if k in low), None)
         key = IBM_REV.get(dev, "ibm")

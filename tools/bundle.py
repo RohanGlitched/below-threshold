@@ -9,7 +9,7 @@ with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         z.write(os.path.join(root, f), f)
     for d in keep_dirs:
         for base, _, files in os.walk(os.path.join(root, d)):
-            if "__pycache__" in base:
+            if "__pycache__" in base or base.replace(os.sep, "/").endswith("data/runs"):
                 continue
             for f in files:
                 p = os.path.join(base, f)
