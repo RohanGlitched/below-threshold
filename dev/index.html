@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Below threshold (dev)</title>
+<link rel="stylesheet" href="../main.css">
+<style>body{margin:0;background:#0c1017}</style>
+<script type="importmap">{"imports":{"lab.web":"./mock-web.js"}}</script>
+</head>
+<body>
+<div id="mount"></div>
+<script type="module">
+  // Mirrors Qollab: index.html goes into the body, then main.js runs with `backend` set.
+  const html = await (await fetch('../index.html')).text();
+  document.getElementById('mount').innerHTML = html;
+  window.backend = { name: 'mock' };
+  await import('../main.js');
+</script>
+</body>
+</html>

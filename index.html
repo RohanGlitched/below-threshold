@@ -1,0 +1,236 @@
+<div class="bt" id="bt">
+  <header class="masthead">
+    <p class="kicker">A Quantum Unlocked lab · repetition-code memory</p>
+    <h1>Below threshold</h1>
+    <p class="lede">Error correction only pays off if a bigger code makes a <em>better</em> qubit. Google's Willow chip showed it in 2024: each step up in code size divided the logical error by Λ&nbsp;=&nbsp;2.14. Run the same kind of experiment on the machine you picked.</p>
+
+  </header>
+
+  <section class="bench" aria-labelledby="run-h">
+    <h2 id="run-h" class="visually-hidden">Run the experiment</h2>
+    <div class="machine" id="machine" aria-live="polite">
+      <div class="machine-id">
+        <span class="machine-dot" id="machine-dot" aria-hidden="true"></span>
+        <div>
+          <p class="machine-label">Your machine</p>
+          <p class="machine-name" id="machine-name">Reading the machine you picked…</p>
+          <p class="machine-meta" id="machine-meta">&nbsp;</p>
+        </div>
+      </div>
+      <ul class="fits" id="fits" aria-label="Code sizes that fit on this machine"></ul>
+    </div>
+    <div class="run">
+      <div class="controls">
+        <div class="control dial">
+          <label for="dial">Noise dial <output id="dial-out" for="dial">6%</output></label>
+          <input type="range" id="dial" min="0" max="10" step="2" value="6" aria-describedby="dial-hint">
+          <p class="hint" id="dial-hint">Chance each qubit flips at each step, on top of the machine's own noise, which alone is too low to count failures at large sizes.</p>
+        </div>
+        <div class="control">
+          <label for="shots">Shots per code size</label>
+          <select id="shots">
+            <option value="800">800 · quick</option>
+            <option value="1600" selected>1,600</option>
+            <option value="3200">3,200 · tighter bars</option>
+          </select>
+        </div>
+        <div class="control">
+          <span class="label" id="twirl-l">Coherent errors</span>
+          <label class="switch"><input type="checkbox" id="twirl" checked aria-labelledby="twirl-l"><span>Twirl into random flips</span></label>
+        </div>
+      </div>
+      <div class="go">
+        <button class="primary" id="go" type="button">Run the experiment</button>
+        <p class="status" id="status" role="status">Shows a recorded run until you press the button.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="fig" id="fig-result" aria-labelledby="result-h">
+    <div class="fig-head">
+      <p class="fig-no">Figure 1</p>
+      <h2 id="result-h">Bigger code, smaller error</h2>
+      <p class="fig-source" id="result-source">&nbsp;</p>
+    </div>
+    <div class="result-grid">
+      <div class="lambda-card">
+        <p class="lambda-label">Suppression factor</p>
+        <p class="lambda-value"><span class="sym">Λ</span> = <span id="lambda">—</span></p>
+        <p class="lambda-ci" id="lambda-ci">&nbsp;</p>
+        <p class="lambda-say" id="lambda-say">Each time the code grows by two qubits, the logical error per round is divided by Λ. Above 1 means below threshold.</p>
+        <div class="ruler" id="ruler" role="img" aria-label="Your Λ compared with published results"></div>
+      </div>
+      <figure class="chart-box">
+        <svg id="chart-eps" class="chart" role="img" aria-labelledby="eps-cap"></svg>
+        <figcaption id="eps-cap">Logical error per round against code distance, log scale. Every size comes from the same circuit: a distance-3 code is any 3 neighbouring data qubits and the checks between them, so the distance-9 memory holds seven of them, five distance-5s and three distance-7s. Filled: the matching decoder. Open: majority vote. Bars are 95% intervals; the dashed line is what this machine's noise model predicts.</figcaption>
+      </figure>
+    </div>
+    <div class="table-wrap">
+      <table class="numbers" id="numbers">
+        <caption class="visually-hidden">Measured failures per code distance</caption>
+        <thead><tr><th scope="col">Distance</th><th scope="col">Qubits</th><th scope="col">Windows</th><th scope="col">Shots</th><th scope="col">Matching fails</th><th scope="col">Majority fails</th><th scope="col">Error per round</th><th scope="col">Λ to next</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="fig" id="fig-shot" aria-labelledby="shot-h">
+    <div class="fig-head">
+      <p class="fig-no">Figure 2</p>
+      <h2 id="shot-h">One shot, from ions to answer</h2>
+      <p class="fig-source">Real shots from the run above, at the largest distance.</p>
+    </div>
+    <div class="trap">
+      <canvas id="camera" class="camera" aria-hidden="true"></canvas>
+      <p class="camera-note">Each qubit is one ion. At readout a laser makes ions in state 1 glow and leaves ions in state 0 dark, so a measurement looks like a string of pearls with gaps. (False colour: the real light is ultraviolet, 369.5&nbsp;nm.)</p>
+      <p class="visually-hidden" id="camera-text" aria-live="polite"></p>
+    </div>
+    <div class="shot-grid">
+      <figure class="chart-box">
+        <svg id="chart-graph" class="chart graph" role="img" aria-labelledby="graph-cap"></svg>
+        <figcaption id="graph-cap">The decoding graph. Rows are rounds of checks, columns are neighbouring pairs of data qubits. A lit node is a detection event: a check that changed since the round before. The matching decoder pairs events along the most likely chains of errors, or sends one to the edge of the code.</figcaption>
+      </figure>
+      <div class="verdicts">
+        <p class="shot-count" id="shot-count">&nbsp;</p>
+        <dl class="verdict-list">
+          <div><dt>Prepared</dt><dd id="v-prep">—</dd></div>
+          <div><dt>Detection events</dt><dd id="v-events">—</dd></div>
+          <div><dt>Majority vote</dt><dd id="v-major">—</dd></div>
+          <div><dt>Matching</dt><dd id="v-mwpm">—</dd></div>
+        </dl>
+        <p class="shot-say" id="shot-say">&nbsp;</p>
+        <div class="shot-nav">
+          <button type="button" id="shot-prev" aria-label="Previous shot">Previous</button>
+          <button type="button" id="shot-play" aria-pressed="true">Pause</button>
+          <button type="button" id="shot-next" aria-label="Next shot">Next</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="fig" id="fig-game" aria-labelledby="game-h">
+    <div class="fig-head">
+      <p class="fig-no">Figure 3 · your turn</p>
+      <h2 id="game-h">Be the decoder</h2>
+      <p class="fig-source">Detection events from a distance-5 memory with the dial at 7%, drawn from the same error model.</p>
+    </div>
+    <div class="game-grid">
+      <figure class="chart-box">
+        <svg id="game-graph" class="chart graph game" role="group" aria-labelledby="game-cap"></svg>
+        <figcaption id="game-cap">Explain every lit event: click two to pair them (a chain of flips between them), or click one and then an edge of the code (a chain that runs out of the code). Short chains are more likely; a chain that crosses the whole code flips the stored bit.</figcaption>
+      </figure>
+      <div class="verdicts game-panel">
+        <p class="game-score" id="game-score">&nbsp;</p>
+        <p class="shot-count" id="game-count">&nbsp;</p>
+        <p class="shot-say" id="game-say" aria-live="polite">&nbsp;</p>
+        <div class="shot-nav">
+          <button type="button" id="game-undo">Undo</button>
+          <button type="button" id="game-check" class="solid">Check my answer</button>
+          <button type="button" id="game-next" class="solid" hidden>Next puzzle</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="fig" id="fig-cal" aria-labelledby="cal-h">
+    <div class="fig-head">
+      <p class="fig-no">Figure 4</p>
+      <h2 id="cal-h">The machine, measured from its own syndromes</h2>
+      <p class="fig-source" id="cal-source">&nbsp;</p>
+    </div>
+    <div class="thr-grid">
+      <figure class="chart-box">
+        <svg id="chart-cal" class="chart" role="img" aria-labelledby="cal-cap"></svg>
+        <figcaption id="cal-cap">Chance of each kind of error mechanism per step, read off the decoding graph. Outline: what the dial alone causes. Filled: learned from the shots. Tick: what the decoder assumed from the machine's published specs.</figcaption>
+      </figure>
+      <div class="thr-text" id="cal-say">
+        <p>Two checks that share an error mechanism fire together more often than chance, and the excess is that mechanism's probability. Google calibrated its decoders this way; here it runs on the shots your machine just returned.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="fig" id="fig-threshold" aria-labelledby="thr-h">
+    <div class="fig-head">
+      <p class="fig-no">Figure 5</p>
+      <h2 id="thr-h">Where the threshold is</h2>
+      <p class="fig-source">Prediction from the same error model the decoder uses, 20,000 shots per point.</p>
+    </div>
+    <div class="thr-grid">
+      <figure class="chart-box">
+        <svg id="chart-thr" class="chart" role="img" aria-labelledby="thr-cap"></svg>
+        <figcaption id="thr-cap">Chance the whole memory fails as the dial turns up, when it runs as many rounds as its distance. Left of the crossing, every extra pair of qubits helps. Right of it, a bigger code just collects more errors.</figcaption>
+      </figure>
+      <div class="thr-text">
+        <p>A code only helps when the physical error rate is below a <strong>threshold</strong>. For this code and circuit it is about <strong id="thr-value">13%</strong> per step, far above any real machine (IonQ Forte's two-qubit gates are wrong about 1% of the time), which is why the dial exists.</p>
+        <p>Surface codes, which also correct phase errors, have a threshold near 1%. That is the number hardware teams fight for, and the reason Willow's Λ&nbsp;=&nbsp;2.14 was news.</p>
+        <p class="aside" id="thr-short">The experiment above runs two rounds so that distance 9 fits in 25 qubits. A short memory flatters big codes, so its curves never cross.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="fig" id="fig-atlas" aria-labelledby="atlas-h">
+    <div class="fig-head">
+      <p class="fig-no">Figure 6</p>
+      <h2 id="atlas-h">The same experiment on every machine</h2>
+      <p class="fig-source" id="atlas-source">Recorded on Qollab's runners, dial at 6%, matching decoder.</p>
+    </div>
+    <div class="atlas" id="atlas" role="table" aria-label="Λ measured on each machine"></div>
+    <p class="note">Every machine lands near Λ ≈ 2–3 with the dial at 6%: the dial dominates, and each machine's own noise pulls its Λ down a little. Ions need no swaps, since any two can be entangled directly. On IBM's grids the code is laid along a line of neighbouring qubits, which also needs none, but the ions pay in time: a gate takes about 0.6&nbsp;ms on an ion and 0.07&nbsp;µs on a superconducting chip.</p>
+  </section>
+
+  <section class="fig" id="fig-twirl" aria-labelledby="twirl-h">
+    <div class="fig-head">
+      <p class="fig-no">Figure 7</p>
+      <h2 id="twirl-h">Coherent errors add up</h2>
+      <p class="fig-source" id="twirl-source">&nbsp;</p>
+    </div>
+    <div class="twirl-grid">
+      <svg id="chart-twirl" class="chart" role="img" aria-labelledby="twirl-cap"></svg>
+      <div>
+        <p>The dial is a small rotation, not a coin toss. When every rotation turns the same way, their amplitudes add before they are squared, and the matching decoder, which assumes independent random flips, fails more often than the model predicts.</p>
+        <p>Pauli twirling fixes it: a Z gate before a rotation reverses it, so each copy of the circuit draws a random sign for every rotation. Averaged over four copies, the errors become exactly the random flips the decoder expects. The same trick, randomized compiling, is used on real hardware.</p>
+        <p class="aside" id="twirl-cap">Logical error per shot at distance 3 and 5, dial at 6%: every rotation the same way, randomly signed, and the model's prediction.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="how" aria-labelledby="how-h">
+    <h2 id="how-h">How it works</h2>
+    <ol class="steps">
+      <li><h3>Store one bit in many qubits</h3><p>The repetition code copies a logical 0 into d data qubits (000… ) or a logical 1 (111…). Distance d survives up to (d − 1)/2 flips.</p></li>
+      <li><h3>Check neighbours, not values</h3><p>Each round, an ancilla records whether two neighbouring data qubits agree, without reading either. Qollab's IonQ path can only measure at the end, so every round gets fresh ancillas, read at the end; reading an untouched qubit later gives the same statistics. On IBM's noise models the ancillas are measured and reset every round, as Google does.</p></li>
+      <li><h3>Turn the dial</h3><p>A rotation on every data qubit before each round, and on every ancilla before it is read, flips it with probability q. All circuits, at every size, go to the machine as one job, because IonQ's runners accept one job per run.</p></li>
+      <li><h3>Decode</h3><p>From the circuit, the lab lists every single fault and the detection events it would cause (a detector error model). Minimum-weight perfect matching finds the most likely set of faults behind each shot; majority vote looks only at the final data. Each distinct bitstring is decoded once.</p></li>
+      <li><h3>Measure Λ</h3><p>The failure rate becomes an error per round, ε = (1 − (1 − 2P)<sup>1/r</sup>)/2, as in Google's 2021 paper; Λ is the ratio between neighbouring distances, fitted across all of them, with 95% intervals from 2,000 bootstrap resamples.</p></li>
+    </ol>
+    <details class="circuit">
+      <summary>The distance-3 circuit</summary>
+      <pre id="circuit-text">Loads with the experiment.</pre>
+    </details>
+  </section>
+
+  <section class="limits" aria-labelledby="limits-h">
+    <h2 id="limits-h">What this shows, and what it doesn't</h2>
+    <ul>
+      <li><strong>Only bit flips.</strong> A repetition code ignores phase errors, so its Λ is not a surface-code Λ. It shows the mechanism, not a full logical qubit.</li>
+      <li><strong>The dial does the heavy lifting.</strong> With native noise alone, distance 5 fails about once in 10,000 shots on these machines. Counting that would take far more shots than a browser run allows.</li>
+      <li><strong>Two rounds.</strong> Google fitted up to 50. With r = 2, the error per round still carries some of the start and end of the memory.</li>
+      <li><strong>Simulators are models.</strong> IonQ says its noise models should not be used to predict hardware results. Real hardware would add idle dephasing, crosstalk and leakage.</li>
+    </ul>
+  </section>
+
+  <footer class="foot">
+    <div class="refs">
+      <h2>Sources</h2>
+      <ol>
+        <li>Google Quantum AI, “Exponential suppression of bit or phase errors with cyclic error correction”, <i>Nature</i> 595, 383 (2021). Λ = 2.99 (bit flip), 3.18 (phase flip).</li>
+        <li>Google Quantum AI, “Quantum error correction below the surface code threshold”, <i>Nature</i> 638, 920 (2025). Λ = 2.14.</li>
+        <li>Egan et al., “Fault-tolerant control of an error-corrected qubit”, <i>Nature</i> 598, 281 (2021). A Bacon–Shor code on trapped Yb⁺ ions.</li>
+        <li>Higgott &amp; Gidney, “Sparse Blossom”, arXiv:2303.15933; Gidney, “Stim”, <i>Quantum</i> 5, 497 (2021). The tools professionals use for the steps this lab does by hand.</li>
+        <li>Bravyi et al., “Correcting coherent errors with surface codes”, <i>npj Quantum Information</i> 4, 55 (2018); Wallman &amp; Emerson, randomized compiling, <i>PRA</i> 94, 052325 (2016).</li>
+      </ol>
+    </div>
+    <p class="support">This effort is supported by Qollab &amp; IonQ.</p>
+    <p class="fine">MIT licence. Built with Qiskit; every number on this page is computed in your browser from the shots the machine returned.</p>
+  </footer>
+</div>
