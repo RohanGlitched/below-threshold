@@ -28,6 +28,7 @@ export class Game {
   pick(k) {
     if (this.checked) return;
     const B = this.data.boundary;
+    if (k !== B && !this.open().includes(k)) return; // already explained by a pair
     if (k === B) {
       if (this.sel === null) { this.say('Pick a lit node first, then the edge it should run to.'); return; }
       this.pairs.push([this.sel, B]);
@@ -52,6 +53,7 @@ export class Game {
 
   check() {
     if (this.checked || this.open().length) return;
+    this.focusNext = true;
     const par = this.data.par;
     let flip = 0;
     for (const [a, b] of this.pairs) flip ^= par[a][b];
@@ -79,6 +81,9 @@ export class Game {
     const { d, r, boundary: B } = this.data;
     const p = this.p;
     const svg = this.svg;
+    // the SVG is rebuilt on every pick; keep the keyboard where it was
+    const active = document.activeElement;
+    const keep = active && svg.contains(active) ? active.dataset.k : null;
     clear(svg);
     const C = d - 1, L = r + 1;
     const w = 560, h = 60 + L * 78;
@@ -95,7 +100,7 @@ export class Game {
     for (let t = 0; t <= r; t++) el('text', { x: 4, y: Y(t) + 4, text: t < r ? `round ${t + 1}` : 'final', class: 'row-label' }, svg);
     // rails: the two ends of the code, where a chain of flips can leave
     for (const [x, label] of [[railL, 'left edge'], [railR, 'right edge']]) {
-      const g = el('g', { class: 'rail', tabindex: this.checked ? -1 : 0, role: 'button', 'aria-label': `Send the selected event to the ${label}` }, svg);
+      const g = el('g', { class: 'rail', tabindex: this.checked ? -1 : 0, role: 'button', 'data-k': `rail-${label}`, 'aria-label': `Send the selected event to the ${label}` }, svg);
       el('rect', { x: x - 10, y: Y(0) - 22, width: 20, height: Y(r) - Y(0) + 44, rx: 10, fill: this.sel !== null && !this.checked ? 'rgba(243,182,94,.12)' : 'transparent', stroke: 'var(--line)', 'stroke-dasharray': '3 4' }, g);
       el('text', { x, y: Y(r) + 40, 'text-anchor': 'middle', text: label }, g);
       this.bind(g, B);
@@ -132,7 +137,9 @@ export class Game {
     for (let k = 0; k < B; k++) {
       const q = node(k);
       const lit = fired.has(k);
-      const g = el('g', { class: 'gnode' + (lit ? ' lit' : '') + (open.has(k) ? ' open' : '') + (this.sel === k ? ' sel' : ''), tabindex: lit && !this.checked ? 0 : -1, role: lit ? 'button' : null, 'aria-label': lit ? `Detection event, round ${Math.floor(k / C) + 1}, check ${k % C + 1}` : null }, svg);
+      const g = el('g', { class: 'gnode' + (lit ? ' lit' : '') + (open.has(k) ? ' open' : '') + (this.sel === k ? ' sel' : ''), tabindex: lit && !this.checked ? 0 : -1, role: lit ? 'button' : null, 'data-k': String(k),
+        'aria-pressed': lit ? String(this.sel === k) : null,
+        'aria-label': lit ? `Detection event, round ${Math.floor(k / C) + 1}, check ${k % C + 1}${open.has(k) ? '' : ', paired'}` : null }, svg);
       el('circle', { cx: q.x, cy: q.y, r: lit ? 11 : 4.5 }, g);
       if (lit) {
         el('circle', { class: 'hit', cx: q.x, cy: q.y, r: 20, fill: 'transparent' }, g);
@@ -149,6 +156,11 @@ export class Game {
     ui.undo.disabled = this.checked || (!this.pairs.length && this.sel === null);
     ui.next.hidden = !this.checked;
     ui.check.hidden = this.checked;
+    if (keep !== null) {
+      const again = svg.querySelector(`[data-k="${keep}"]`);
+      if (again && again.getAttribute('tabindex') === '0') again.focus();
+    }
+    if (this.focusNext && this.checked) { this.focusNext = false; ui.next.focus(); }
     if (!this.checked) {
       this.say(left_ === 0
         ? 'Every event is explained. Check your answer.'
@@ -157,7 +169,7 @@ export class Game {
           : `${left_} event${left_ === 1 ? '' : 's'} left to explain. Click one to start a pair.`);
     } else {
       const you = this.youOk ? 'Your correction kept the stored bit.' : 'Your correction flipped the stored bit: a logical error.';
-      const mw = this.mwOk ? 'Matching got it too.' : 'Matching got this one wrong as well: the most likely explanation is not always the true one.';
+      const mw = this.mwOk ? 'Matching got it too.' : this.youOk ? 'Matching got this one wrong: the most likely explanation is not always the true one.' : 'Matching got this one wrong as well: the most likely explanation is not always the true one.';
       this.say(`${you} ${mw} Red dashes show the flips that really happened; the blue path is the matching decoder's answer.`);
     }
   }

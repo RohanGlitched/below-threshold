@@ -66,7 +66,8 @@ def boot(backend) -> str:
 def run(backend, q: float = 0.06, shots: int = 1600, twirl: bool = True) -> str:
     """One memory experiment at every distance that fits, in one job."""
     try:
-        out = experiment.run(backend, ds=DISTANCES, r=R, qs=(float(q),), shots=int(shots),
+        shots = max(400, min(int(shots), 3200))
+        out = experiment.run(backend, ds=DISTANCES, r=R, qs=(float(q),), shots=shots,
                              instances=4, twirl=bool(twirl), predict_shots=0)
         _save(out)
         return out

@@ -70,7 +70,7 @@ export class Camera {
     ctx.fillRect(0, h * 0.12, w, 6);
     ctx.fillRect(0, h * 0.62, w, 6);
     if (!this.shot || !this.meta) {
-      ctx.fillStyle = '#5c6678';
+      ctx.fillStyle = '#8d97a8';
       ctx.font = '13px "Public Sans", system-ui, sans-serif';
       ctx.fillText('Waiting for shots…', 16, h / 2);
       return;
@@ -121,7 +121,7 @@ export class Camera {
       ctx.fillRect(sweepX - 30, 0, 34, h);
     }
     // group brackets and labels
-    ctx.font = '11.5px "Public Sans", system-ui, sans-serif';
+    ctx.font = '12px "Public Sans", system-ui, sans-serif';
     ctx.textAlign = 'center';
     for (const gr of groups) {
       const a = X(pos[gr.from]) - rad * 0.8, b = X(pos[gr.to]) + rad * 0.8;

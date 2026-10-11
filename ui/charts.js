@@ -146,7 +146,7 @@ export function renderThreshold(svg, square, q) {
     el('line', { x1: x(cross), x2: x(cross), y1: f.y1, y2: f.y0, stroke: 'var(--fail)', 'stroke-dasharray': '3 4' }, svg);
     el('text', { x: x(cross) + 6, y: f.y1 + 14, text: `threshold ≈ ${(cross * 100).toFixed(0)}%`, fill: 'var(--fail)' }, svg);
   }
-  const colors = { 3: '#5e6f8f', 5: '#8aa1d6', 7: 'var(--glow)' };
+  const colors = { 3: '#7d8db0', 5: '#8aa1d6', 7: 'var(--glow)' };
   for (const d of [3, 5, 7]) {
     const pts = rows.filter((r) => r.d === d && r.P_mwpm > 0).sort((a, b) => a.q - b.q);
     if (pts.length < 2) continue;

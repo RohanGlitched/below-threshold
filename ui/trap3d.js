@@ -110,12 +110,14 @@ export class Trap3D {
 
   load(d, r, shot, opts = {}) {
     if (!this.ok) return;
-    if (this.ions) for (const o of this.ions) { this.scene.remove(o.group); }
-    if (this.beams) for (const b of this.beams) this.scene.remove(b);
+    if (this.ions) for (const o of this.ions) { this.scene.remove(o.group); o.core.material.dispose(); o.glow.material.dispose(); }
+    if (this.beams) for (const b of this.beams) { this.scene.remove(b); b.material.dispose(); }
+    if (this.beamGeo) this.beamGeo.dispose();
+    if (this.ionGeo) this.ionGeo.dispose();
     this.d = d; this.r = r; this.shot = shot;
     const n = d + r * (d - 1);
     const xs = this.layout(n);
-    const geo = new THREE.SphereGeometry(0.2, 24, 16);
+    const geo = this.ionGeo = new THREE.SphereGeometry(0.2, 24, 16);
     this.ions = xs.map((x, k) => {
       const group = new THREE.Group();
       group.position.set(x, 0, 0);
@@ -127,7 +129,7 @@ export class Trap3D {
       return { group, core, glow, x, data: k < d, rest: k < d ? DIM : DIM_ANC, pulse: 0, lit: 0 };
     });
     // two Raman beams, shown on the pair a gate addresses
-    const beamGeo = new THREE.CylinderGeometry(0.05, 0.14, 9, 12, 1, true);
+    const beamGeo = this.beamGeo = new THREE.CylinderGeometry(0.05, 0.14, 9, 12, 1, true);
     this.beams = [0, 1].map(() => {
       const m = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: BEAM, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
       m.position.y = 4.5;
@@ -160,7 +162,8 @@ export class Trap3D {
   frame(now) {
     this.raf = 0;
     if (!this.ions) return;
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!this.reduceQuery) this.reduceQuery = matchMedia('(prefers-reduced-motion: reduce)');
+    const reduce = this.reduceQuery.matches;
     const total = this.steps.length * this.stepMs + 2600; // hold the readout
     if (this.playing) this.elapsed = Math.max(0, now - this.t0) % total;
     const el = reduce ? total - 1 : this.elapsed;

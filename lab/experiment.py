@@ -112,7 +112,7 @@ def _ionq_label(key, hardware):
     return base + (" (hardware)" if hardware else " noise model")
 
 
-def plan(prof: dict, ds, r: int, qs, instances: int = 4, twirl: bool = True):
+def plan(prof: dict, ds, r: int, qs, instances: int = 4, twirl: bool = True, seed: int = 0):
     """The circuits for one run.
 
     Only the largest distance that fits is built; every smaller distance is
@@ -133,7 +133,8 @@ def plan(prof: dict, ds, r: int, qs, instances: int = 4, twirl: bool = True):
     for q in qs:
         for k in range(n):
             specs.append(Spec(dmax, r, q=q, logical=k % 2, layout=layout,
-                              twirl=(k + 1) if (twirl and q > 0) else 0, reset=prof.get("reset", True)))
+                              twirl=(k + 1) if (twirl and q > 0) else 0, reset=prof.get("reset", True),
+                              seed=seed))
     return specs, sorted(fit), dropped
 
 
@@ -332,11 +333,26 @@ def graph(d, r, prof, q):
         [e.u, e.v, edge_kind(spec, e, m.B), round(e.p, 6), e.obs] for e in m.edges]}
 
 
-def run(backend, ds=(3, 5, 7, 9), r=2, qs=(0.06,), shots=1000, instances=4, twirl=True, predict_shots=4000):
+def _run_kwargs(prof):
+    """Keep IonQ's default debiasing off on hardware, so failure counts stay raw.
+    Qollab's pre-built backends may not accept the option; then it is left out."""
+    if not prof.get("hardware"):
+        return {}
+    try:
+        from qiskit_ionq import ErrorMitigation
+        return {"error_mitigation": ErrorMitigation.NO_DEBIASING}
+    except Exception:
+        return {}
+
+
+def run(backend, ds=(3, 5, 7, 9), r=2, qs=(0.06,), shots=1000, instances=4, twirl=True, predict_shots=4000,
+        seed=None):
     t0 = time.time()
     prof = profile(backend)
     ds, qs = list(ds), list(qs)
-    specs, ds_run, dropped = plan(prof, ds, r, qs, instances, twirl)
+    if seed is None:
+        seed = time.time_ns() % (2 ** 31)
+    specs, ds_run, dropped = plan(prof, ds, r, qs, instances, twirl, seed=seed)
     if not specs:
         return json.dumps({"ok": False, "error": "too_small", "profile": prof, "dropped": dropped})
     circuits = [build_circuit(s) for s in specs]
@@ -351,7 +367,13 @@ def run(backend, ds=(3, 5, 7, 9), r=2, qs=(0.06,), shots=1000, instances=4, twir
     per = max(1, int(shots * len(qs) // len(specs)))
     t2 = time.time()
     # A lone circuit goes on its own: IonQ's runners take a single-circuit job.
-    job = backend.run(circuits[0] if len(circuits) == 1 else circuits, shots=per)
+    extra = _run_kwargs(prof)
+    try:
+        job = backend.run(circuits[0] if len(circuits) == 1 else circuits, shots=per, **extra)
+    except TypeError:
+        if not extra:
+            raise
+        job = backend.run(circuits[0] if len(circuits) == 1 else circuits, shots=per)
     result = job.result()
     t3 = time.time()
     counts_list = _counts_list(result, len(circuits))
@@ -361,6 +383,7 @@ def run(backend, ds=(3, 5, 7, 9), r=2, qs=(0.06,), shots=1000, instances=4, twir
     return json.dumps({
         "ok": True, "profile": prof, "r": r, "ds": ds_run, "qs": qs, "dropped": dropped, "dmax": dmax,
         "shots_per_circuit": per, "circuits": len(circuits), "instances": len(specs) // len(qs), "twirl": twirl,
+        "seed": seed,
         "qubits": specs[0].qubits, "swaps": swaps, "two_qubit_gates": two_q,
         "sweeps": sweeps, "samples": samples, "graph": graph(dmax, r, prof, qs[0]),
         "timing": {"build": t1 - t0, "transpile": t2 - t1, "run": t3 - t2, "decode": t4 - t3},

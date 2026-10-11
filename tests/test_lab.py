@@ -198,7 +198,7 @@ def test_stats():
     p, lo, hi = wilson(10, 1000)
     assert lo < 0.01 < hi
     assert per_round(0.0, 3) == 0.0
-    assert abs(per_round(1 - (1 - 2 * 0.01) ** 3, 3) * 2 - 0.02) < 1e-9 or True
+    assert abs(per_round((1 - (1 - 0.02) ** 3) / 2, 3) - 0.01) < 1e-12
     lam, C = lam_fit([3, 5, 7], [1e-2, 1e-2 / 3, 1e-2 / 9])
     assert abs(lam - 3) < 1e-9
     s = summarize([{"d": 3, "shots": 2000, "fail_mwpm": 140, "fail_major": 160},
@@ -254,20 +254,33 @@ def test_window_of_a_big_code_is_a_small_code():
 
 
 def test_reuse_without_reset_matches_with_reset():
-    """Un-reset ancillas, read as XORs of consecutive rounds, give the same rate."""
+    """Un-reset ancillas, read as XORs of consecutive rounds, give the same rate
+    when only the dial acts. With readout errors a misread flips two consecutive
+    XOR-ed syndromes: the detector error model must carry that two-round edge,
+    and with it the decoder beats the graph that forgets it. (The un-reset record
+    is still a little harder to decode, since a misread then spans two rounds.)"""
     from lab.code import unreset
-    q = 0.06
-    rates = []
-    for reset in (True, False):
-        specs = [Spec(5, 3, q=q, logical=k % 2, layout="reuse", twirl=k + 1, reset=reset) for k in range(4)]
-        sim = AerSimulator(seed_simulator=21)
+    from qiskit_aer.noise import NoiseModel, ReadoutError
+
+    def rate(reset, pm, graph_spec=None):
+        specs = [Spec(5, 3, q=0.06, logical=k % 2, layout="reuse", twirl=k + 1, reset=reset) for k in range(4)]
+        nm = NoiseModel()
+        if pm:
+            nm.add_all_qubit_readout_error(ReadoutError([[1 - pm, pm], [pm, 1 - pm]]))
+        sim = AerSimulator(seed_simulator=21, noise_model=nm)
         res = sim.run([transpile(build_circuit(s), sim, optimization_level=0) for s in specs], shots=3000).result()
-        dec = Matching(specs[0], Noise(q=q))
+        dec = Matching(graph_spec or specs[0], Noise(q=0.06, pm=pm))
         f = n = 0
         for i, spec in enumerate(specs):
             for k, c in res.get_counts(i).items():
                 bits = unreset(spec, bits_from_key(k, spec.clbits))
                 fired = tuple(j for j, v in enumerate(detectors(spec, bits)) if v)
                 f += c * (dec.decode(fired) != observable(spec, bits)); n += c
-        rates.append(f / n)
-    assert abs(rates[0] - rates[1]) < 0.012, rates
+        return f / n
+
+    assert abs(rate(True, 0.0) - rate(False, 0.0)) < 0.012
+    with_reset = rate(True, 0.05)
+    fixed = rate(False, 0.05)
+    forgetful = rate(False, 0.05, graph_spec=Spec(5, 3, q=0.06, layout="reuse", reset=True))
+    assert fixed < forgetful - 0.003, (fixed, forgetful)
+    assert abs(fixed - with_reset) < 0.02, (fixed, with_reset)

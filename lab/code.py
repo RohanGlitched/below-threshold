@@ -24,11 +24,14 @@ coherent rotation into a bit flip with probability q, so one dial setting is
 one circuit and a whole sweep still fits in a single job.
 
 A coherent rotation is not quite a random flip: amplitudes from different
-steps add up before they are squared, which hurts the matching decoder (about
-30% more failures at d = 3, q = 6%). Pauli twirling fixes it: a Z before RX is
+steps add up before they are squared, which hurts the matching decoder (the
+cost is small at d = 3 and grows with the code, about 3x at d = 9 on the Forte
+Enterprise model at q = 6%). Pauli twirling fixes it: a Z before RX is
 RX(-theta), so each instance draws a random sign for every rotation, and the
 average over instances is exactly the random-flip channel the decoder assumes.
-Four instances per distance already agree with the model within shot noise.
+One randomly signed instance already stops the rotations adding up along a
+qubit's timeline; four instances per distance agree with the model within
+shot noise. Every run draws its signs from a fresh seed, stored with the run.
 """
 
 from __future__ import annotations
@@ -49,6 +52,7 @@ class Spec:
     layout: str = "unrolled"
     twirl: int = 0          # 0: every dial rotation +theta; k > 0: random signs, instance k
     reset: bool = True      # reuse layout only: reset ancillas between rounds
+    seed: int = 0           # per-run nonce for the twirl signs (0 in tests, so they repeat)
 
     @property
     def checks(self) -> int:
@@ -106,7 +110,7 @@ def build_circuit(spec: Spec) -> QuantumCircuit:
     cr = ClassicalRegister(spec.clbits, "c")
     qc = QuantumCircuit(qr, cr, name=spec.name)
     theta = dial_angle(spec.q) if spec.q > 0 else 0.0
-    rng = random.Random(f"{spec.d}/{spec.r}/{spec.q}/{spec.logical}/{spec.twirl}")
+    rng = random.Random(f"{spec.d}/{spec.r}/{spec.q}/{spec.logical}/{spec.twirl}/{spec.seed}")
 
     def rot(qubit):
         sign = rng.choice((1, -1)) if spec.twirl else 1

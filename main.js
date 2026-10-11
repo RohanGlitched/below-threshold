@@ -7,26 +7,35 @@ import { Camera, renderGraph, describeShot } from './ui/shot.js';
 import { renderAtlas, shortName } from './ui/atlas.js';
 import { fmtPct } from './ui/svg.js';
 import { Game } from './ui/game.js';
-import { Trap3D } from './ui/trap3d.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { info: null, run: null, live: false, shot: 0, timer: 0, playing: true, sentJob: false };
 const camera = new Camera($('camera'));
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+// three.js comes from Qollab's runtime under the bare name 'three'. It is
+// loaded here, inside a try, so the page still works without WebGL or if the
+// mapping is missing: the camera frame and the graph carry the shot instead.
 let trap = null;
 try {
+  const { Trap3D } = await import('./ui/trap3d.js');
   trap = new Trap3D($('trap3d'), $('trap3d-label'));
   if (!trap.ok) trap = null;
   window.__bt = { trap };
 } catch (err) {
   console.warn('3D trap unavailable:', err);
+  trap = null;
+}
+if (!trap) {
   $('trap3d').classList.add('no-webgl');
+  document.querySelector('.trap3d-wrap').hidden = true;
+  $('camera-trap-note').hidden = true;
 }
 
-const FAMILY_TEXT = {
-  ionq: 'Trapped ytterbium ions · IonQ cloud',
-  ibm: 'Superconducting qubits · runs in your browser',
-  ideal: 'No noise of its own · runs in your browser',
-};
+function familyText(prof) {
+  if (prof.family === 'ionq') return prof.hardware ? 'Trapped ytterbium ions · real IonQ hardware' : 'IonQ’s noise model of its trapped-ion machine · simulated on IonQ’s cloud';
+  if (prof.family === 'ibm') return 'IBM’s noise model of a superconducting chip · simulated in your browser';
+  return 'No noise of its own · runs in your browser';
+}
 
 console.log('Below threshold: loading the lab…');
 
@@ -35,6 +44,7 @@ console.log('Below threshold: loading the lab…');
 // to end on Qollab. Nothing else listens or answers.
 globalThis.addEventListener('message', (e) => {
   if (!e.data || typeof e.data.bt !== 'string') return;
+  if (e.origin !== 'https://qollab.xyz' && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(e.origin)) return;
   if (e.data.bt === 'run') runExperiment(e.data.shots);
   if (e.data.bt === 'dump' && state.run) {
     const { graph, ...rest } = state.run;
@@ -51,7 +61,11 @@ try {
   await boot();
 } catch (err) {
   console.error(err);
+  $('machine-name').textContent = 'Could not read the machine';
   setStatus('The lab could not start: ' + (err && err.message ? err.message : String(err)), 'err');
+} finally {
+  if (!state.wired) wireControls();
+  $('go').disabled = false;
 }
 // Keep the run alive so the page can call Python again (Run the experiment,
 // the circuit drawing). Press Stop in Qollab's runner to end it.
@@ -62,15 +76,23 @@ async function boot() {
   state.info = JSON.parse(await web.boot.callPromising(backend));
   const prof = state.info.profile;
   $('machine-name').textContent = shortName(prof.label);
-  $('machine-meta').textContent = `${FAMILY_TEXT[prof.family] || ''} · up to ${prof.max_qubits} qubits for this lab`;
+  $('machine-meta').textContent = `${familyText(prof)} · up to ${prof.max_qubits} qubits for this lab`;
   $('machine-dot').className = 'machine-dot ' + (prof.family === 'ionq' ? '' : prof.family);
   $('fits').innerHTML = '';
   for (const f of state.info.distances) {
     const li = document.createElement('li');
     li.className = f.fits ? '' : 'no';
-    li.innerHTML = `<b>d = ${f.d}</b> · ${f.qubits} qubits`;
+    li.innerHTML = `<b>d = ${f.d}</b> · ${f.qubits} qubits${f.fits ? '' : '<span class="visually-hidden">, too many qubits for this machine</span>'}`;
     li.title = f.fits ? 'Fits on this machine' : 'Too many qubits for this machine';
     $('fits').appendChild(li);
+  }
+  // Figure 2 draws every shot as an ion chain; say so when the machine is not one
+  if (prof.family === 'ionq') {
+    $('shot-source').textContent = 'Real shots from the run above, on the full distance-9 code (distance 7 on smaller machines). Each qubit is one ion.';
+    $('camera-family').hidden = true;
+  } else {
+    $('shot-source').textContent = `Real shots from the run above, drawn as the circuit would run on an ion trap. Your machine is ${prof.family === 'ibm' ? 'a noise model of a superconducting chip' : 'an ideal simulator'}, so the ion picture illustrates the gate schedule, not that machine's layout.`;
+    $('camera-family').hidden = false;
   }
   state.run = pickRecorded();
   renderAll();
@@ -83,6 +105,7 @@ async function boot() {
     $('fig-game').hidden = true;
   }
   wireControls();
+  $('go').disabled = false;
   if (state.run) setStatus(`Showing a run recorded on ${shortName(state.run.profile.label)}. Press the button to measure your own.`);
   else setStatus('Press the button to run the experiment.');
   console.log(`Below threshold is ready on ${prof.label} (${prof.family}, up to ${prof.max_qubits} qubits).`);
@@ -133,13 +156,31 @@ function renderAll() {
   }
   const cross = renderThreshold($('chart-thr'), (theory.square || {}).ideal || [], Number($('dial').value) / 100);
   if (cross) $('thr-value').textContent = `${Math.round(cross * 100)}%`;
-  renderAtlas($('atlas'), atlasRuns(), state.info.profile.model, 0.06);
+  renderAtlas($('atlas'), atlasRuns(), state.info.profile.label, 0.06, predictedLambda());
   renderTwirlFigure();
+}
+
+// Lambda the error model predicts for each machine from its published specs at
+// the 6% dial, fitted the same way as the measurements (theory.json).
+function predictedLambda() {
+  const models = (state.info.theory || {}).models || {};
+  const out = {};
+  for (const [model, rows] of Object.entries(models)) {
+    const pts = rows.filter((t) => Math.abs(t.q - 0.06) < 1e-9 && t.eps_mwpm > 0).sort((a, b) => a.d - b.d);
+    if (pts.length < 2) continue;
+    const xs = pts.map((t) => (t.d + 1) / 2), ys = pts.map((t) => Math.log(t.eps_mwpm));
+    const mx = xs.reduce((a, b) => a + b, 0) / xs.length, my = ys.reduce((a, b) => a + b, 0) / ys.length;
+    let sxy = 0, sxx = 0;
+    xs.forEach((x, i) => { sxy += (x - mx) * (ys[i] - my); sxx += (x - mx) ** 2; });
+    if (sxx > 0) out[model] = Math.exp(-sxy / sxx);
+  }
+  return out;
 }
 
 function lambdaSentence(fit, sweep) {
   if (!fit) return 'Too few failures at the larger sizes to measure Λ. Turn the dial up or add shots.';
-  const rows = sweep.rows;
+  const rows = sweep.rows || [];
+  if (!rows.length) return '';
   const a = rows[0], b = rows[rows.length - 1];
   const ratio = a.eps_mwpm > 0 && b.eps_mwpm > 0 ? a.eps_mwpm / b.eps_mwpm : null;
   const head = fit.lam > 1
@@ -158,7 +199,7 @@ function renderCalibration(run, cal) {
   const excess = (k) => (L[k] !== undefined && D[k] !== undefined ? L[k] - D[k] : null);
   const ex = ['space', 'time'].map(excess).filter((v) => v !== null);
   const add = ex.length ? ex.reduce((a, b) => a + b, 0) / ex.length : null;
-  $('cal-source').textContent = `Learned from ${cal.shots.toLocaleString()} shots of the distance-${cal.d} code on ${shortName(run.profile.label)}.`;
+  $('cal-source').textContent = `Learned from ${(cal.shots || 0).toLocaleString()} shots of the distance-${cal.d} code on ${shortName(run.profile.label)}.`;
   const parts = [];
   parts.push(`<p>Two checks that share an error mechanism fire together more often than chance, and the excess is that mechanism's probability. Google calibrated its decoders this way; here it runs on the shots this machine returned.</p>`);
   if (add !== null) {
@@ -194,7 +235,7 @@ function atlasRuns() {
   const runs = [...((state.info.atlas && state.info.atlas.runs) || [])];
   if (state.live && state.run) {
     // your fresh run replaces the recorded one for this machine
-    const i = runs.findIndex((r) => r.profile.model === state.run.profile.model && r.qs[0] === state.run.qs[0] && r.twirl === state.run.twirl);
+    const i = runs.findIndex((r) => r.profile.label === state.run.profile.label && r.qs[0] === state.run.qs[0] && r.twirl === state.run.twirl);
     if (i >= 0) runs.splice(i, 1);
     runs.unshift(state.run);
   }
@@ -205,7 +246,7 @@ function renderTwirlFigure() {
   const runs = atlasRuns().filter((r) => r.ok && Math.abs(r.qs[0] - 0.06) < 1e-9);
   // a coherent run and a twirled run on the same machine
   const coh = runs.find((r) => r.twirl === false);
-  const tw = coh && runs.find((r) => r.twirl !== false && r.profile.model === coh.profile.model);
+  const tw = coh && runs.find((r) => r.twirl !== false && r.profile.label === coh.profile.label);
   const svg = $('chart-twirl');
   if (!coh || !tw) {
     svg.innerHTML = '';
@@ -220,12 +261,12 @@ function renderTwirlFigure() {
   const last = groups[groups.length - 1];
   const fc = coh.sweeps[0].fit, ft = tw.sweeps[0].fit;
   $('twirl-source').textContent = `Measured on ${shortName(coh.profile.label)}, dial at 6%, matching decoder.`;
-  $('twirl-cap').textContent = `Logical error per shot, with every rotation the same way and with random signs. The cost of coherence grows with the code: ${last ? `${(last.coh / last.tw).toFixed(1)}× more failures at distance ${last.d}` : ''}${fc && ft ? `, and Λ falls from ${ft.lam.toFixed(2)} to ${fc.lam.toFixed(2)}` : ''}.`;
+  $('twirl-cap').textContent = `Logical error per shot, with every rotation the same way and with random signs. The cost of coherence grows with the code: ${last && last.tw > 0 ? `${(last.coh / last.tw).toFixed(1)}× more failures at distance ${last.d}` : ''}${fc && ft ? `, and Λ falls from ${ft.lam.toFixed(2)} to ${fc.lam.toFixed(2)}` : ''}.`;
 }
 
 // --------------------------------------------------------------- one shot
 
-function showShot() {
+function showShot(announce = false) {
   const run = state.run;
   if (!run || !run.samples || !run.samples.length) return;
   const s = run.samples[state.shot % run.samples.length];
@@ -239,7 +280,8 @@ function showShot() {
   $('v-mwpm').innerHTML = `reads ${v.mwOut} <span class="${s.mwpm_ok ? 'yes' : 'no'}">${s.mwpm_ok ? '✓' : '✗'}</span>`;
   $('shot-say').textContent = v.say;
   $('shot-count').textContent = `Shot ${(state.shot % run.samples.length) + 1} of ${run.samples.length} shown · distance ${meta.d} · seen ${s.count}× in ${run.shots_per_circuit} shots`;
-  $('camera-text').textContent = `Readout: ${s.bits}. ${v.say}`;
+  // only spoken when the reader asked for this shot; autoplay stays silent
+  if (announce) $('camera-text').textContent = `Readout ${s.bits.split('').join(' ')}. ${v.say}`;
 }
 
 function startPlayback() {
@@ -251,32 +293,45 @@ function startPlayback() {
   }, 5200);
 }
 
+// One switch for both Pause buttons: the 3D replay when it exists, else the timer.
+function setPlaying(on) {
+  state.playing = on;
+  for (const id of ['shot-play', 'trap3d-play']) {
+    const b = $(id);
+    b.textContent = on ? 'Pause' : 'Play';
+    b.setAttribute('aria-pressed', String(on));
+  }
+  if (trap) trap.setPlaying(on);
+  if (on) startPlayback(); else clearInterval(state.timer);
+}
+
 // ---------------------------------------------------------------- controls
 
 function wireControls() {
+  state.wired = true;
   const dial = $('dial');
   const out = $('dial-out');
   const syncDial = () => {
     out.textContent = `${dial.value}%`;
-    renderThreshold($('chart-thr'), ((state.info.theory || {}).square || {}).ideal || [], Number(dial.value) / 100);
+    dial.setAttribute('aria-valuetext', `${dial.value}%`);
+    const sq = state.info && state.info.theory && state.info.theory.square;
+    renderThreshold($('chart-thr'), (sq || {}).ideal || [], Number(dial.value) / 100);
   };
   dial.addEventListener('input', syncDial);
   syncDial();
-  $('go').addEventListener('click', runExperiment);
-  $('trap3d-play').addEventListener('click', (e) => {
-    if (!trap) return;
-    const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
-    e.currentTarget.setAttribute('aria-pressed', String(on));
-    e.currentTarget.textContent = on ? 'Pause' : 'Play';
-    trap.setPlaying(on);
-  });
-  $('shot-prev').addEventListener('click', () => { state.shot = Math.max(0, state.shot - 1); showShot(); startPlayback(); });
-  $('shot-next').addEventListener('click', () => { state.shot += 1; showShot(); startPlayback(); });
-  $('shot-play').addEventListener('click', (e) => {
-    state.playing = !state.playing;
-    e.currentTarget.textContent = state.playing ? 'Pause' : 'Play';
-    e.currentTarget.setAttribute('aria-pressed', String(state.playing));
-    if (state.playing) startPlayback(); else clearInterval(state.timer);
+  $('go').addEventListener('click', () => runExperiment());
+  $('trap3d-play').addEventListener('click', () => setPlaying(!state.playing));
+  $('shot-play').addEventListener('click', () => setPlaying(!state.playing));
+  $('shot-prev').addEventListener('click', () => { state.shot = Math.max(0, state.shot - 1); showShot(true); startPlayback(); });
+  $('shot-next').addEventListener('click', () => { state.shot += 1; showShot(true); startPlayback(); });
+  // Figure 4 picks a narrow or wide layout from its width; follow resizes
+  let resizeTimer = 0;
+  addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      const cal = state.run && state.run.sweeps && state.run.sweeps[0].calibration;
+      if (cal && cal.kinds) renderCal($('chart-cal'), cal);
+    }, 200);
   });
   const det = document.querySelector('details.circuit');
   det.addEventListener('toggle', async () => {
@@ -291,7 +346,10 @@ function wireControls() {
   });
 }
 
+const SHOT_CHOICES = [400, 800, 1600, 3200];
+
 async function runExperiment(shotsOverride) {
+  if (!state.info) return;
   const prof = state.info.profile;
   console.log(`Running the experiment on ${prof.label}…`);
   if (prof.one_job && state.sentJob) {
@@ -299,7 +357,7 @@ async function runExperiment(shotsOverride) {
     return;
   }
   const q = Number($('dial').value) / 100;
-  const shots = Number(shotsOverride) > 0 ? Number(shotsOverride) : Number($('shots').value);
+  const shots = SHOT_CHOICES.includes(Number(shotsOverride)) ? Number(shotsOverride) : Number($('shots').value);
   const twirl = $('twirl').checked;
   const fits = state.info.distances.filter((f) => f.fits);
   const circuits = prof.one_job ? 1 : 4;
@@ -308,13 +366,14 @@ async function runExperiment(shotsOverride) {
   go.classList.add('busy');
   go.textContent = 'Running…';
   const t0 = performance.now();
-  setStatus(`Sending ${circuits === 1 ? 'one circuit' : circuits + ' circuits'} to ${shortName(prof.label)} as one job, then decoding every code size inside it. ${prof.hardware ? 'This is real hardware: the job waits in IonQ’s queue, which can take minutes to hours. Keep this tab open.' : prof.family === 'ionq' ? 'IonQ simulates every shot, so this takes a few minutes.' : prof.family === 'ibm' ? 'The IBM noise model simulates every shot in your browser; allow a few minutes.' : ''}`);
+  setStatus(`Sending ${circuits === 1 ? 'one circuit' : circuits + ' circuits'} to ${shortName(prof.label)} as one job, then decoding every code size inside it. ${prof.hardware ? 'This is real hardware: the job waits in IonQ’s queue, which can take minutes to hours. Keep this tab open.' : prof.family === 'ionq' ? 'IonQ simulates every shot on its cloud; allow two to three minutes. The figures below are live meanwhile.' : prof.family === 'ibm' ? 'The IBM noise model simulates every shot in your browser; allow a few minutes.' : ''}`);
   const tick = setInterval(() => {
     go.textContent = `Running… ${Math.round((performance.now() - t0) / 1000)} s`;
   }, 1000);
   try {
-    state.sentJob = true;
     const res = JSON.parse(await web.run.callPromising(backend, q, shots, twirl));
+    // a job that reached the machine counts; a failure before that leaves the Run free
+    if (res.ok || res.error === 'one_job') state.sentJob = true;
     if (!res.ok) {
       const msg = res.error === 'one_job'
         ? 'IonQ machines take one job per run. Press Stop, then Run, to send another.'
@@ -331,10 +390,11 @@ async function runExperiment(shotsOverride) {
     const fit = res.sweeps[0].fit;
     setStatus(`Done in ${secs} s: ${res.circuits === 1 ? 'one circuit' : res.circuits + ' circuits'}, one job${fit ? `, Λ = ${fit.lam.toFixed(2)}` : ''}. Your run is also saved in the console as a JSON file.`, 'done');
     console.log(`Run finished in ${secs} s on ${prof.label}: ` + res.sweeps[0].rows.map((r) => `d=${r.d} ${r.fail_mwpm}/${r.shots} fail`).join(', ') + (fit ? `; Λ = ${fit.lam.toFixed(2)} (${fit.lo ? fit.lo.toFixed(2) : '?'}–${fit.hi ? fit.hi.toFixed(2) : '?'})` : ''));
-    document.getElementById('fig-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('fig-result').scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
   } catch (err) {
     console.error(err);
     const text = String(err && err.message ? err.message : err);
+    if (/one job/i.test(text)) state.sentJob = true;
     setStatus(/one job/i.test(text)
       ? 'IonQ machines take one job per run. Press Stop, then Run, to send another.'
       : `The run failed: ${text.slice(0, 200)}`, 'err');

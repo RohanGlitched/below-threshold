@@ -89,8 +89,17 @@ def faults(spec: Spec, noise: Noise) -> list[Fault]:
                 out.append(Fault("cnot", rnd, qs, 4 * noise.p2 / 15, push(k + 1, pat)))
 
     if noise.pm > 0:
+        # Without a reset between rounds (IBM's Nighthawk models), an ancilla's
+        # syndrome is the XOR of two consecutive readings, so misreading one
+        # reading flips the syndromes of round t and round t + 1 together.
+        xor_record = spec.layout == "reuse" and not spec.reset
         for b in range(spec.clbits):
-            out.append(Fault("readout", -1, (b,), noise.pm, 1 << b))
+            flips = 1 << b
+            if xor_record and b >= d:
+                t, i = divmod(b - d, d - 1)
+                if t < r - 1:
+                    flips |= 1 << anc_bit(spec, t + 1, i)
+            out.append(Fault("readout", -1, (b,), noise.pm, flips))
     return out
 
 

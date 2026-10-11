@@ -3,7 +3,7 @@ import { el, linear, size, fmtPct } from './svg.js';
 
 const FAMILY = { ionq: 'Trapped ions', ibm: 'Superconducting', ideal: 'No noise' };
 
-export function renderAtlas(host, runs, currentModel, q = 0.06) {
+export function renderAtlas(host, runs, currentLabel, q = 0.06, predicted = {}) {
   host.innerHTML = '';
   const rows = runs.filter((r) => r.ok && Math.abs((r.qs?.[0] ?? -1) - q) < 1e-9 && r.twirl !== false && r.sweeps?.[0]?.fit);
   if (!rows.length) {
@@ -21,7 +21,8 @@ export function renderAtlas(host, runs, currentModel, q = 0.06) {
     const fit = run.sweeps[0].fit;
     const d3 = run.sweeps[0].rows.find((x) => x.d === 3);
     const row = document.createElement('div');
-    row.className = 'atlas-row' + (run.profile.model === currentModel ? ' you' : '');
+    const you = run.profile.label === currentLabel;
+    row.className = 'atlas-row' + (you ? ' you' : '');
     row.setAttribute('role', 'row');
     const name = document.createElement('span');
     name.className = 'atlas-name';
@@ -30,12 +31,13 @@ export function renderAtlas(host, runs, currentModel, q = 0.06) {
     dot.className = 'machine-dot ' + (run.profile.family === 'ionq' ? '' : run.profile.family);
     dot.setAttribute('aria-hidden', 'true');
     const label = document.createElement('span');
-    label.innerHTML = `${escape(shortName(run.profile.label))}<small>${FAMILY[run.profile.family] || ''}${run.profile.model === currentModel ? ' · your machine' : ''}</small>`;
+    const pred = predicted[run.profile.model];
+    label.innerHTML = `${escape(shortName(run.profile.label))}<small>${FAMILY[run.profile.family] || ''}${pred ? ` · predicted ${pred.toFixed(2)}` : ''}${you ? ' · your machine' : ''}</small>`;
     name.append(dot, label);
     const barCell = document.createElement('span');
     barCell.className = 'atlas-bar-cell';
     barCell.setAttribute('role', 'cell');
-    barCell.appendChild(bar(fit));
+    barCell.appendChild(bar(fit, pred));
     const lam = document.createElement('span');
     lam.className = 'atlas-num';
     lam.setAttribute('role', 'cell');
@@ -49,7 +51,7 @@ export function renderAtlas(host, runs, currentModel, q = 0.06) {
   }
 }
 
-function bar(fit) {
+function bar(fit, pred) {
   const svg = el('svg', { class: 'atlas-bar', role: 'presentation' });
   const w = 300, h = 22;
   size(svg, w, h);
@@ -58,13 +60,14 @@ function bar(fit) {
   el('line', { x1: x(0.5), x2: x(4.5), y1: 11, y2: 11, stroke: 'var(--line-soft)', 'stroke-width': 2 }, svg);
   for (const v of [1, 2, 3, 4]) el('line', { x1: x(v), x2: x(v), y1: 6, y2: 16, stroke: v === 1 ? 'var(--fail)' : 'var(--line)' }, svg);
   el('line', { x1: x(2.14), x2: x(2.14), y1: 3, y2: 19, stroke: 'var(--ink-3)', 'stroke-dasharray': '2 2' }, svg);
+  if (pred) el('line', { x1: x(pred), x2: x(pred), y1: 4, y2: 18, stroke: 'var(--ink-2)', 'stroke-width': 2 }, svg);
   if (fit.lo && fit.hi) el('rect', { x: x(Math.max(0.5, fit.lo)), y: 7, width: Math.max(2, x(Math.min(4.5, fit.hi)) - x(Math.max(0.5, fit.lo))), height: 8, rx: 4, fill: 'rgba(159,182,255,.35)' }, svg);
   el('circle', { cx: x(Math.min(4.45, Math.max(0.55, fit.lam))), cy: 11, r: 4.5, fill: 'var(--glow)' }, svg);
   return svg;
 }
 
 export function shortName(label) {
-  return String(label || '').replace(' noise model', '').replace('(hardware)', '· hardware');
+  return String(label || '').replace(' noise model', ' · noise model').replace(' (hardware)', ' · real hardware');
 }
 
 function escape(s) {

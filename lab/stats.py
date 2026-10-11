@@ -109,11 +109,13 @@ def summarize(rows, r: int, draws: int = 2000, seed: int = 7):
         out["pairs"].append(pair)
 
     eps = [row["eps_mwpm"] for row in out["rows"]]
-    w = [row["fail_mwpm"] for row in rows]
+    # weights on the same footing as the bootstrap: failures counted over the
+    # non-overlapping windows, so the point estimate sits inside its own interval
+    w = [int(k) for k in ks]
     lam, C = lam_fit(ds, eps, w)
     if lam is not None:
         fits = []
-        for s in range(min(draws, 600)):
+        for s in range(draws):
             l2, _ = lam_fit(ds, list(eps_sim[s]), list(sim[s]))
             if l2 is not None and math.isfinite(l2):
                 fits.append(l2)
