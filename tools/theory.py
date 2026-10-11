@@ -32,21 +32,31 @@ def job(args):
     noise = Noise(p2=p2, pm=pm, q=q)
     if p2 == 0 and pm == 0 and q == 0:
         return (kind, model, q, d, r, 0.0, 0.0)
-    pr = predict(Spec(d, r, q=q), noise, shots=SHOTS, seed=1000 + d)
+    # IBM noise models run the measure-and-reset layout (Nighthawk without reset),
+    # the others fresh ancillas, so the prediction matches what each machine ran
+    layout = "reuse" if model.startswith("ibm") else "unrolled"
+    pr = predict(Spec(d, r, q=q, layout=layout, reset=(model != "ibm_nighthawk")), noise, shots=SHOTS, seed=1000 + d)
     return (kind, model, q, d, r, pr["fail_mwpm"] / pr["shots"], pr["fail_major"] / pr["shots"])
 
 
 if __name__ == "__main__":
     t0 = time.time()
     only_square = os.environ.get("ONLY_SQUARE") == "1"
-    jobs = [] if only_square else [("sweep", m, q, d, R) for m in MODELS for q in QS for d in DS]
+    only_models = [m for m in os.environ.get("ONLY_MODELS", "").split(",") if m]
+    models = only_models or MODELS
+    jobs = [] if only_square else [("sweep", m, q, d, R) for m in models for q in QS for d in DS]
     # threshold panel: rounds grow with distance (r = d), ideal machine
-    jobs += [("square", "ideal", q, d, d) for q in SQUARE_QS for d in (3, 5, 7)]
+    if not only_models:
+        jobs += [("square", "ideal", q, d, d) for q in SQUARE_QS for d in (3, 5, 7)]
     jobs.sort(key=lambda j: -(j[3] * j[2]))  # slow ones first
     path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "theory.json")
     if only_square and os.path.exists(path):
         out = json.load(open(path, encoding="utf-8"))
         out["square"] = {}
+    elif only_models and os.path.exists(path):
+        out = json.load(open(path, encoding="utf-8"))
+        for m in only_models:
+            out["models"][m] = []
     else:
         out = {"r": R, "shots": SHOTS, "distances": list(DS), "dials": QS, "models": {}, "square": {}}
     out["square_dials"] = SQUARE_QS

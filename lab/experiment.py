@@ -368,11 +368,13 @@ def run(backend, ds=(3, 5, 7, 9), r=2, qs=(0.06,), shots=1000, instances=4, twir
     t2 = time.time()
     # A lone circuit goes on its own: IonQ's runners take a single-circuit job.
     extra = _run_kwargs(prof)
+    debiasing = "off" if extra else ("default" if prof.get("hardware") else "none")
     try:
         job = backend.run(circuits[0] if len(circuits) == 1 else circuits, shots=per, **extra)
     except TypeError:
         if not extra:
             raise
+        debiasing = "default"
         job = backend.run(circuits[0] if len(circuits) == 1 else circuits, shots=per)
     result = job.result()
     t3 = time.time()
@@ -383,7 +385,7 @@ def run(backend, ds=(3, 5, 7, 9), r=2, qs=(0.06,), shots=1000, instances=4, twir
     return json.dumps({
         "ok": True, "profile": prof, "r": r, "ds": ds_run, "qs": qs, "dropped": dropped, "dmax": dmax,
         "shots_per_circuit": per, "circuits": len(circuits), "instances": len(specs) // len(qs), "twirl": twirl,
-        "seed": seed,
+        "seed": seed, "debiasing": debiasing,
         "qubits": specs[0].qubits, "swaps": swaps, "two_qubit_gates": two_q,
         "sweeps": sweeps, "samples": samples, "graph": graph(dmax, r, prof, qs[0]),
         "timing": {"build": t1 - t0, "transpile": t2 - t1, "run": t3 - t2, "decode": t4 - t3},

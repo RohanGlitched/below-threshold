@@ -1,4 +1,4 @@
-// Figure 4: one row per machine, Λ with its interval on a shared axis.
+// Figure 6: one row per machine, Λ with its interval on a shared axis.
 import { el, linear, size, fmtPct } from './svg.js';
 
 const FAMILY = { ionq: 'Trapped ions', ibm: 'Superconducting', ideal: 'No noise' };

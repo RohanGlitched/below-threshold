@@ -141,7 +141,7 @@ function renderAll() {
     const trows = ((theory.models || {})[model] || []).filter((t) => Math.abs(t.q - q) < 1e-9);
     renderEps($('chart-eps'), sweep, trows);
     const circ = run.circuits === 1 ? `one ${run.qubits}-qubit circuit` : `${run.circuits} copies of a ${run.qubits}-qubit circuit`;
-    $('result-source').textContent = `${state.live && !run.recorded ? 'Measured just now' : 'Recorded'} on ${shortName(run.profile.label)} · ${circ}, one job · ${(run.shots_per_circuit * run.circuits).toLocaleString()} shots${run.runs > 1 ? ` from ${run.runs} runs, pooled` : ''} · dial ${Math.round(q * 100)}% · ${run.r} rounds${run.twirl === false ? ' · not twirled' : ''}${run.when ? ' · ' + run.when : ''}`;
+    $('result-source').textContent = `${state.live && !run.recorded ? 'Measured just now' : 'Recorded'} on ${shortName(run.profile.label)}${run.recorded_locally ? ' (re-run in Qiskit Aer locally on the same noise model)' : ''} · ${circ}, one job · ${(run.shots_per_circuit * run.circuits).toLocaleString()} shots${run.runs > 1 ? ` from ${run.runs} runs, pooled` : ''} · dial ${Math.round(q * 100)}% · ${run.r} rounds${run.twirl === false ? ' · not twirled' : ''}${run.when ? ' · ' + run.when : ''}`;
     renderTable(sweep);
     renderCalibration(run, sweep.calibration);
     state.shot = 0;

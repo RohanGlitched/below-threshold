@@ -110,7 +110,8 @@ def build_circuit(spec: Spec) -> QuantumCircuit:
     cr = ClassicalRegister(spec.clbits, "c")
     qc = QuantumCircuit(qr, cr, name=spec.name)
     theta = dial_angle(spec.q) if spec.q > 0 else 0.0
-    rng = random.Random(f"{spec.d}/{spec.r}/{spec.q}/{spec.logical}/{spec.twirl}/{spec.seed}")
+    tag = f"{spec.d}/{spec.r}/{spec.q}/{spec.logical}/{spec.twirl}"
+    rng = random.Random(tag if not spec.seed else f"{tag}/{spec.seed}")
 
     def rot(qubit):
         sign = rng.choice((1, -1)) if spec.twirl else 1

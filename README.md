@@ -14,14 +14,14 @@ This effort is supported by Qollab & IonQ.
 
 1. Sign in to Qollab (JS projects need it), open the project and press **Run**.
 2. In **Select QPU**, pick **Built-in simulator**. The page loads above the console with a run recorded on that machine.
-3. Press **Run the experiment**. Under a minute later your own Λ appears, with its interval and every shot behind it.
+3. Press **Run the experiment**. Under a minute later your own Λ appears (distances 3 to 7 there; 3 to 9 on the IonQ models), with its interval and every shot behind it.
 
 IonQ's noise models (Forte Enterprise 1, Forte 1, Aria 1, Aria 2) are free, run on IonQ's cloud and take two to three minutes; they accept one job per Run, so press **Stop**, then **Run**, to send another. The IBM noise models simulate every shot in your browser and take a few minutes.
 
 ## For a judge with three minutes
 
 - **Figure 1.** The error per round falls as the code grows, from distance 3 to 9, all read out of one circuit. The big number is Λ; the ruler puts it next to Google's 2021 and 2024 results.
-- **Press Run the experiment.** Your own Λ replaces the recorded one, with a 95% interval from 2,000 bootstrap resamples. Then the circuits, the shots and the decoding all happened in your browser.
+- **Press Run the experiment.** Your own Λ replaces the recorded one, with a 95% interval from 2,000 bootstrap resamples. On the built-in simulator the circuits, the shots and the decoding all happened in your browser; on IonQ the shots come back from IonQ's cloud and the decoding is still yours.
 - **Figure 2.** One real shot, drawn as an ion-camera frame and as the decoding graph with the matching decoder's answer on it.
 - **Figure 3.** Pair the detection events yourself and see whether you beat the decoder.
 - **Figure 7.** Turn twirling off and Λ drops from 2.50 to 1.91: coherent errors add up, and random signs stop them.
@@ -49,10 +49,10 @@ Each row is one job, decoded in the browser. **Λ measured** is fitted across ev
 | IBM Kingston | superconducting | 17 | 1,600 | **2.90** | 2.45 – 3.46 | 2.51 |
 | IBM Fez | superconducting | 17 | 1,600 | **2.66** | 2.28 – 3.17 | 2.51 |
 | IBM Boston | superconducting | 17 | 1,600 | **2.47** | 2.13 – 2.92 | 2.64 |
-| IBM Miami | superconducting | 17 | 1,600 | **2.45** | 2.16 – 2.79 | 2.35 |
+| IBM Miami | superconducting | 17 | 1,600 | **2.45** | 2.16 – 2.79 | 2.32 |
 | IBM Aachen | superconducting | 17 | 1,600 | **2.28** | 1.98 – 2.63 | 2.64 |
 | IBM Pittsburgh | superconducting | 17 | 1,600 | **2.23** | 1.97 – 2.55 | 2.64 |
-| IBM Berlin | superconducting | 17 | 1,600 | **2.06** | 1.87 – 2.27 | 2.35 |
+| IBM Berlin | superconducting | 17 | 1,600 | **2.06** | 1.87 – 2.27 | 2.32 |
 | IBM Marrakesh | superconducting | 17 | 1,600 | **2.02** | 1.85 – 2.21 | 2.51 |
 | Built-in simulator | no noise | 19 | 1,600 | **2.97** | 2.36 – 3.75 | 2.94 |
 | AWS Braket local simulator | no noise | 19 | 1,600 | **2.37** | 1.96 – 2.95 | 2.94 |
@@ -60,11 +60,11 @@ Each row is one job, decoded in the browser. **Λ measured** is fitted across ev
 | *Google Willow, surface code, native noise (2024)* | superconducting | 101 | | *2.14* | ± 0.02 | |
 | *Google Sycamore, repetition code, native noise (2021)* | superconducting | 21 | | *2.99* | ± 0.09 | |
 
-The IBM Miami and Berlin rows were re-run after the decoder learned their un-reset readout edge; their raw counts from Qollab were gone, so they were re-recorded on the same IBM noise models in Qiskit Aer locally (`tools/record_local.py`). A fresh Qollab run on the Miami model with the fixed decoder gave Λ = 2.24 (1.99 – 2.53), inside the row's interval. Every other row was recorded on Qollab's runner.
+The IBM Miami and Berlin rows were re-run after the decoder learned their un-reset readout edge; their raw counts from Qollab were gone, so they were re-recorded on the same IBM noise models in Qiskit Aer locally (`tools/record_local.py`) and are marked as such on the page. Every other row was recorded on Qollab's runner. The prediction column uses each machine's own layout: fresh ancillas on IonQ, measure-and-reset on IBM, and the XOR record on Miami and Berlin.
 
-The dial sets the level: with no machine noise at all it gives Λ = 2.94, and a machine's own gates and readout can only pull Λ down from there. Differences between machines are mostly within the intervals; the two noise-free simulators, which run identical physics, differ by as much as any pair. What a machine really changes is the error it adds on top of the dial, which Figure 4 measures from its syndromes. Turning twirling off on IonQ Forte Enterprise 1 drops Λ from 2.50 to 1.91: coherent errors add up and the decoder, which expects random flips, loses ground.
+The dial sets the level: with no machine noise at all it gives Λ = 2.94, and a machine's own gates and readout can only pull Λ down from there. Differences between machines are mostly within the intervals; the two noise-free simulators, which run identical physics, differ by 0.6, more than most pairs of real machines. What a machine really changes is the error it adds on top of the dial, which Figure 4 measures from its syndromes. Turning twirling off on IonQ Forte Enterprise 1 drops Λ from 2.50 to 1.91: coherent errors add up and the decoder, which expects random flips, loses ground.
 
-The demo video shows the first 1,600-shot run on the Forte Enterprise 1 noise model, Λ = 2.36 (2.07 – 2.63). The table pools it with a second run (2.50, 2.27 – 2.76); the hardware job gave 2.55 (2.20 – 2.94). The three intervals overlap. Willow's 2.14 is listed for scale: it is a surface code under native noise, a harder code and a harder setting, so it is a reference point, not a contest.
+The demo video shows the first 1,600-shot run on the Forte Enterprise 1 noise model, Λ = 2.36 at the time (2.34 with the current fit weights). The table pools it with a second run, which alone gave 2.67, for 2.50 (2.27 – 2.76); the hardware job gave 2.55 (2.20 – 2.94); a third run from the published page on October 11 gave 2.52 (2.20 – 2.90). All the intervals overlap. Willow's 2.14 is listed for scale: it is a surface code under native noise, a harder code and a harder setting, so it is a reference point, not a contest.
 
 ## Why this exists
 
@@ -85,7 +85,7 @@ Below threshold lets anyone, with nothing to install:
 
 **Syndromes without mid-circuit measurement.** Qollab's IonQ path measures once, at the end. Every round therefore gets fresh ancillas, read at the end: an ancilla that is never touched again gives the same statistics whether it is read now or later (deferred measurement). That costs `d + r(d-1)` qubits, so 25 for d = 9 with r = 2 rounds. On IBM's noise models the ancillas are measured and reset every round, as on real superconducting chips, and the code is laid along a line of neighbouring qubits, so it needs no SWAPs. IBM's Miami and Berlin models list no reset instruction, so there the ancillas keep their last reading, each round's syndrome is the XOR of two consecutive readings, and a misread flips two syndromes at once; the error model carries that two-round edge.
 
-**The noise dial, twirled.** Every machine here is far below this code's threshold, so failures at d ≥ 5 would be too rare to count. The dial adds `RX(θ)` with $\sin^2(\theta/2) = q$ on every data qubit before each round and on every ancilla before readout. A coherent rotation is not a random flip, because amplitudes add up before they are squared; the cost is small at d = 3 and grows with the code, about 3× at d = 9 on the Forte Enterprise model. So every rotation gets a random sign ($Z\,RX(\theta)\,Z = RX(-\theta)$), which is Pauli twirling, also called randomized compiling. Averaged over many sign patterns it is exactly the random-flip channel the decoder assumes; one pattern, as on IonQ where a job holds one circuit, already stops the rotations adding up along a qubit's timeline, and on Qiskit Aer the exact pattern IonQ ran gives Λ within shot noise of the model. Every run draws fresh signs from a seed stored with it.
+**The noise dial, twirled.** Every machine here is far below this code's threshold, so failures at d ≥ 5 would be too rare to count. The dial adds `RX(θ)` with $\sin^2(\theta/2) = q$ on every data qubit before each round and on every ancilla before readout. A coherent rotation is not a random flip, because amplitudes add up before they are squared; the cost is small at d = 3 and grows with the code, about 3× at d = 9 on the Forte Enterprise model. So every rotation gets a random sign ($Z\,RX(\theta)\,Z = RX(-\theta)$), which is Pauli twirling, also called randomized compiling. Averaged over many sign patterns it is exactly the random-flip channel the decoder assumes; one pattern, as on IonQ where a job holds one circuit, already stops the rotations adding up along a qubit's timeline. Runs from October 11 on draw fresh signs from a seed stored with the run; the earlier recorded runs, including the hardware job, used one fixed pattern.
 
 **Decoding.** The lab lists every single fault of the circuit and the detection events it causes. This detector error model is what Stim computes, written out by hand here so it runs in Pyodide. Edges are weighted $\ln\frac{1-p}{p}$. Minimum-weight perfect matching uses an exact subset dynamic program (networkx blossom above 16 events). Majority vote is the classical baseline. Each distinct bitstring is decoded once.
 
@@ -110,7 +110,7 @@ The lab learns every edge of the graph from your shots and shows how much noise 
 | 3. Be the decoder | pair up detection events yourself and play against the matching decoder | short chains are likely; a chain across the code flips the bit |
 | 4. The machine, measured from its own syndromes | learned error rates for each kind of mechanism, next to the dial alone and the published specs | how much the machine adds on top of the dial |
 | 5. Where the threshold is | the crossing of the d = 3, 5, 7 curves when rounds grow with distance | near 13% for this circuit; real machines sit far to the left |
-| 6. The same experiment on every machine | Λ with intervals for every machine recorded on Qollab, and the model's prediction as a tick | the intervals overlap; the dial sets the level |
+| 6. The same experiment on every machine | Λ with intervals for every machine recorded on Qollab (Miami and Berlin re-run locally in Aer), and the model's prediction as a tick | the intervals overlap; the dial sets the level |
 | 7. Coherent errors add up | the same machine with and without twirling, against the model | the gap grows with distance |
 
 ## Glossary
@@ -133,7 +133,7 @@ The lab learns every edge of the graph from your shots and shows how much noise 
 
 - **A different code.** `lab/code.py` builds the circuit and `lab/dem.py` enumerates its faults. Any code whose single faults flip at most two detectors (the phase-flip code, a surface code's X or Z half) decodes with the same matcher.
 - **A different decoder.** `lab/decode.py` takes a list of weighted edges. Swap in union-find, or a decoder that uses the calibrated weights (`lab/calibrate.py`) by default.
-- **Real hardware.** Pick an IonQ quantum computer in Qollab's dialog; the page runs unchanged (the hardware row above was made this way) and asks IonQ for raw counts with debiasing off. A 400-shot option keeps a hardware job cheap.
+- **Real hardware.** Pick an IonQ quantum computer in Qollab's dialog; the page runs unchanged (the hardware row above was made this way) and asks IonQ for raw counts with debiasing off where Qollab's backend accepts the option; each run records whether it did. A 400-shot option keeps a hardware job cheap.
 - **Teaching.** Every figure reads from one JSON run, so a class can share runs (the console saves each one) and compare machines.
 
 ## For teachers: three exercises
@@ -148,16 +148,16 @@ The lab learns every edge of the graph from your shots and shows how much noise 
 - **The button is grey after one run on IonQ.** IonQ's runners take one job per Run. Press Stop, then Run, to send another.
 - **Λ shows a dash.** Too few failures at the larger sizes. Turn the dial up or add shots.
 - **The IBM models are slow.** Every shot is simulated in your browser; 800 shots is a good start.
-- **Distance 9 is struck out.** The built-in simulator caps the lab at 21 qubits, so it runs distances 3 to 7.
+- **Distance 9 is struck out.** The lab keeps the built-in simulator to 21 qubits (browser memory), so it runs distances 3 to 7.
 - **IonQ runs are stuck in the queue.** A queued hardware job blocks the account's IonQ queue, noise models included, until it finishes.
 - **No 3D ion trap.** WebGL is off or three.js did not load; the camera frame and the graph still show every shot.
 
 ## Honest limits
 
 - **Bit flips only.** A repetition code ignores phase errors, so its Λ is not a surface-code Λ. It shows the mechanism, not a full logical qubit.
-- **The dial does the heavy lifting.** With native noise alone, distance 5 fails about once in 10,000 shots on these machines. The dial is the experiment's control, and the table says what it gives on its own.
+- **The dial does the heavy lifting.** With native noise alone, the error model puts a distance-5 failure between about 1 in 3,000 shots (Forte 1) and 1 in 20,000 (IBM Heron). The dial is the experiment's control, and the table says what it gives on its own.
 - **Two rounds.** Google fitted up to 50. With r = 2, ε still carries some of the start and end of the memory.
-- **Noise models are models.** IonQ says its noise-model simulators should not be used to predict hardware results. One run is on real hardware (IonQ Forte Enterprise 1). It had 1,600 shots, and IonQ applies its default debiasing to jobs of 500 shots or more, so its counts may include that mitigation; runs sent from the page now ask for raw counts.
+- **Noise models are models.** IonQ says its noise-model simulators should not be used to predict hardware results. One run is on real hardware (IonQ Forte Enterprise 1). It had 1,600 shots, and IonQ applies its default debiasing to jobs of 500 shots or more, so its counts may include that mitigation; runs sent from the page ask for raw counts where Qollab's backend accepts the option, and record whether it did.
 - **One logical value on IonQ.** A one-circuit job prepares logical 0 only, so an asymmetric readout error would not be sampled there. Local runs alternate 0 and 1.
 - **Correlated sizes.** The distances are read from the same shots; the intervals treat them as independent, which makes them conservative for ratios.
 
@@ -175,8 +175,9 @@ lab/experiment.py                one job on the chosen machine, windowed decodin
 lab/web.py                       what the page calls; recorded runs and predictions
 lab/game.py                      puzzles for "Be the decoder"
 data/theory.json                 predictions from the same error model, 20,000 shots per point
-data/atlas.json                  runs recorded on Qollab's machines
-tests/                           21 checks against Qiskit Aer (not needed on Qollab)
+data/atlas.json                  runs recorded on Qollab's machines (Miami, Berlin: re-run locally in Aer)
+tools/record_local.py            re-record an IBM noise-model row locally after a decoder change
+tests/                           21 checks, most on Qiskit Aer (not needed on Qollab)
 ```
 
 Tests (local Python with `qiskit`, `qiskit-aer`, `networkx`, `pytest`): `python -m pytest tests -q`. They check that windows decode like standalone codes, that the twirled dial matches the model on Aer, that coherent rotations are worse, that single faults are always corrected, that un-reset ancillas decode with the two-round readout edge, and that the exact matcher agrees with blossom.

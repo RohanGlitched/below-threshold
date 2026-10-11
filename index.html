@@ -64,7 +64,7 @@
       </div>
       <figure class="chart-box">
         <svg id="chart-eps" class="chart" role="img" aria-labelledby="eps-cap"></svg>
-        <figcaption id="eps-cap">Logical error per round against code distance, log scale. Every size comes from the same circuit: a distance-3 code is any 3 neighbouring data qubits and the checks between them, so the distance-9 memory holds seven of them, five distance-5s and three distance-7s. Filled: the matching decoder. Open: majority vote. Bars are 95% intervals; the dashed line is what this machine's noise model predicts. At distance 3 with two rounds both decoders see the same information; the gap between matching and majority vote opens from distance 5.</figcaption>
+        <figcaption id="eps-cap">Logical error per round against code distance, log scale. Every size comes from the same circuit: a distance-3 code is any 3 neighbouring data qubits and the checks between them, so the distance-9 memory holds seven of them, five distance-5s and three distance-7s. Filled: the matching decoder. Open: majority vote. Bars are 95% intervals; the dashed line is what this machine's noise model predicts. At distance 3 with two rounds the two decoders perform about the same; the gap opens from distance 5.</figcaption>
       </figure>
     </div>
     <div class="table-wrap">
@@ -93,7 +93,7 @@
     <div class="trap">
       <canvas id="camera" class="camera" aria-hidden="true"></canvas>
       <p class="camera-note">Each qubit is drawn as one ion. At readout a laser makes ions in state 1 glow and leaves ions in state 0 dark, so a measurement looks like a string of pearls with gaps. (False colour: the real light is ultraviolet, 369.5&nbsp;nm.)</p>
-      <p class="camera-note" id="camera-family" hidden>Your machine is not an ion trap: on a superconducting chip the ancillas are measured and reset each round instead of being read at the end, so the picture shows the shot's bits, not that chip's layout.</p>
+      <p class="camera-note" id="camera-family" hidden>Your machine is not an ion trap: on a superconducting chip the ancillas are measured each round (and reset, except on the Nighthawk models Miami and Berlin, which have no reset) instead of being read at the end, so the picture shows the shot's bits, not that chip's layout.</p>
       <p class="visually-hidden" id="camera-text" aria-live="polite"></p>
     </div>
     <div class="shot-grid">
@@ -183,10 +183,10 @@
     <div class="fig-head">
       <p class="fig-no">Figure 6</p>
       <h2 id="atlas-h">The same experiment on every machine</h2>
-      <p class="fig-source" id="atlas-source">Recorded on Qollab's runners, dial at 6%, matching decoder. Axis from Λ = 0.5 to 4.5: the red tick is Λ = 1, the threshold; the dotted line is Willow's 2.14.</p>
+      <p class="fig-source" id="atlas-source">Recorded on Qollab's runners (Miami and Berlin re-run locally in Qiskit Aer on the same noise models), dial at 6%, matching decoder. Axis from Λ = 0.5 to 4.5: the red tick is Λ = 1, the threshold; the dotted line is Willow's 2.14; the grey tick is the model's prediction from the machine's specs.</p>
     </div>
     <div class="atlas" id="atlas" role="table" aria-label="Λ measured on each machine"></div>
-    <p class="note">Every machine lands near Λ ≈ 2–3 with the dial at 6%: the dial sets the level, and a machine's own noise can only pull Λ down from the 2.9 the dial alone would give. The grey tick on each bar is what the error model predicts from that machine's published specs. Differences between machines are mostly within the intervals; the two noise-free simulators, which run identical physics, differ by as much as any pair. What each machine really changes is the error it adds on top of the dial, which Figure 4 measures. Ions need no swaps, since any two can be entangled directly. On IBM's grids the code is laid along a line of neighbouring qubits, which also needs none, but the ions pay in time: a gate takes about 0.6&nbsp;ms on an ion and 0.07&nbsp;µs on a superconducting chip.</p>
+    <p class="note">Every machine lands near Λ ≈ 2–3 with the dial at 6%: the dial sets the level, and a machine's own noise can only pull Λ down from the 2.9 the dial alone would give. The grey tick on each bar is what the error model predicts from that machine's published specs. Differences between machines are mostly within the intervals; the two noise-free simulators, which run identical physics, differ by 0.6, more than most pairs of real machines. What each machine really changes is the error it adds on top of the dial, which Figure 4 measures. Ions need no swaps, since any two can be entangled directly. On IBM's grids the code is laid along a line of neighbouring qubits, which also needs none, but the ions pay in time: a gate takes about 0.65&nbsp;ms on an ion and 0.07&nbsp;µs on a superconducting chip.</p>
   </section>
 
   <section class="fig" id="fig-twirl" aria-labelledby="twirl-h">
@@ -199,7 +199,7 @@
       <svg id="chart-twirl" class="chart" role="img" aria-labelledby="twirl-cap"></svg>
       <div>
         <p>The dial is a small rotation, not a coin toss. When every rotation turns the same way, their amplitudes add before they are squared, and the matching decoder, which assumes independent random flips, fails more often. The bigger the code, the more steps there are for the rotations to add up.</p>
-        <p>Pauli twirling fixes it: a Z gate before a rotation reverses it, so each copy of the circuit draws a random sign for every rotation. Averaged over many copies, the errors become exactly the random flips the decoder expects. One randomly signed copy, as on IonQ where a job holds one circuit, already stops the rotations adding up along a qubit's timeline, and on Aer the exact pattern IonQ ran gives Λ within shot noise of the random-flip model. Every run draws fresh signs from a seed stored with it. The same trick, randomized compiling, is used on real hardware.</p>
+        <p>Pauli twirling fixes it: a Z gate before a rotation reverses it, so each copy of the circuit draws a random sign for every rotation. Averaged over many copies, the errors become exactly the random flips the decoder expects. One randomly signed copy, as on IonQ where a job holds one circuit, already stops the rotations adding up along a qubit's timeline. Runs from October 11 on draw fresh signs from a seed stored with the run; the earlier recorded runs, including the hardware job, used one fixed pattern. The same trick, randomized compiling, is used on real hardware.</p>
         <p class="aside" id="twirl-cap">Logical error per shot, with every rotation the same way and with random signs.</p>
       </div>
     </div>
@@ -209,7 +209,7 @@
     <h2 id="how-h">How it works</h2>
     <ol class="steps">
       <li><h3>Store one bit in many qubits</h3><p>The repetition code copies a logical 0 into d data qubits (000… ) or a logical 1 (111…). Distance d survives up to (d − 1)/2 flips.</p></li>
-      <li><h3>Check neighbours, not values</h3><p>Each round, an ancilla records whether two neighbouring data qubits agree, without reading either. Qollab's IonQ path can only measure at the end, so every round gets fresh ancillas, read at the end; reading an untouched qubit later gives the same statistics. On IBM's noise models the ancillas are measured and reset every round, as Google does.</p></li>
+      <li><h3>Check neighbours, not values</h3><p>Each round, an ancilla records whether two neighbouring data qubits agree, without reading either. Qollab's IonQ path can only measure at the end, so every round gets fresh ancillas, read at the end; reading an untouched qubit later gives the same statistics. On IBM's noise models the ancillas are measured every round and reset, as Google does, except on the Nighthawk models (Miami, Berlin), which have no reset: there each syndrome is the XOR of two consecutive readings.</p></li>
       <li><h3>Turn the dial</h3><p>A rotation on every data qubit before each round, and on every ancilla before it is read, flips it with probability q. Each rotation gets a random sign (Pauli twirling), so coherent errors become the random flips the decoder expects.</p></li>
       <li><h3>One circuit, every size</h3><p>IonQ's runners take one job of one circuit. So the lab builds the biggest code that fits, distance 9 in 25 qubits, and reads every smaller code out of it: any d neighbouring data qubits and the checks between them are a complete distance-d memory under the same noise, the extra gates on its edge qubits included in its error model. All sizes therefore come from the same shots.</p></li>
       <li><h3>Decode</h3><p>From the circuit, the lab lists every single fault and the detection events it would cause (a detector error model). Minimum-weight perfect matching finds the most likely set of faults behind each shot; majority vote looks only at the final data. Each distinct bitstring is decoded once.</p></li>
@@ -227,7 +227,7 @@
       <li><strong>Only bit flips.</strong> A repetition code ignores phase errors, so its Λ is not a surface-code Λ. It shows the mechanism, not a full logical qubit.</li>
       <li><strong>The dial does the heavy lifting.</strong> With native noise alone, distance 5 fails about once in 10,000 shots on these machines. Counting that would take far more shots than a browser run allows.</li>
       <li><strong>Two rounds.</strong> Google fitted up to 50. With r = 2, the error per round still carries some of the start and end of the memory.</li>
-      <li><strong>Simulators are models.</strong> IonQ says its noise models should not be used to predict hardware results. One recorded run is on real hardware, IonQ Forte Enterprise 1: Λ = 2.55. It had 1,600 shots, and IonQ applies its default debiasing to jobs of 500 shots or more, so its counts may include that mitigation; runs sent from this page now ask IonQ for raw counts.</li>
+      <li><strong>Simulators are models.</strong> IonQ says its noise models should not be used to predict hardware results. One recorded run is on real hardware, IonQ Forte Enterprise 1: Λ = 2.55. It had 1,600 shots, and IonQ applies its default debiasing to jobs of 500 shots or more, so its counts may include that mitigation; runs sent from this page ask IonQ for raw counts where Qollab's backend accepts the option, and each run records whether it did.</li>
       <li><strong>One logical value on IonQ.</strong> A one-circuit job prepares logical 0 only, so an asymmetric readout error would not be sampled there. Local runs alternate 0 and 1.</li>
       <li><strong>Correlated sizes.</strong> The distances are read from the same shots, and the intervals treat them as independent, which makes them conservative for ratios.</li>
     </ul>
@@ -245,6 +245,6 @@
       </ol>
     </div>
     <p class="support">This effort is supported by Qollab &amp; IonQ.</p>
-    <p class="fine">MIT licence. Built with Qiskit; every number on this page is computed in your browser from the shots the machine returned.</p>
+    <p class="fine">MIT licence. Built with Qiskit; every measured number on this page is decoded in your browser from the shots the machine returned, and the model curves are precomputed from the same error model (data/theory.json).</p>
   </footer>
 </div>
