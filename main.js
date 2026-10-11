@@ -7,17 +7,19 @@ import { Camera, renderGraph, describeShot } from './ui/shot.js';
 import { renderAtlas, shortName } from './ui/atlas.js';
 import { fmtPct } from './ui/svg.js';
 import { Game } from './ui/game.js';
+import { Trap3D } from './ui/trap3d.js';
 
 const $ = (id) => document.getElementById(id);
-const state = { info: null, run: null, live: false, shot: 0, timer: 0, playing: true, sentJob: false };
+const state = { info: null, run: null, live: false, shot: 0, timer: 0, playing: true, sentJob: false, wired: false };
+const SHOT_CHOICES = [400, 800, 1600, 3200];
 const camera = new Camera($('camera'));
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-// three.js comes from Qollab's runtime under the bare name 'three'. It is
-// loaded here, inside a try, so the page still works without WebGL or if the
-// mapping is missing: the camera frame and the graph carry the shot instead.
+// three.js comes from Qollab's runtime under the bare name 'three' (Qollab
+// bundles the project's static imports, so the trap module is imported above);
+// building the trap is wrapped so the page still works without WebGL: the
+// camera frame and the graph carry the shot instead.
 let trap = null;
 try {
-  const { Trap3D } = await import('./ui/trap3d.js');
   trap = new Trap3D($('trap3d'), $('trap3d-label'));
   if (!trap.ok) trap = null;
   window.__bt = { trap };
@@ -345,8 +347,6 @@ function wireControls() {
     }
   });
 }
-
-const SHOT_CHOICES = [400, 800, 1600, 3200];
 
 async function runExperiment(shotsOverride) {
   if (!state.info) return;
