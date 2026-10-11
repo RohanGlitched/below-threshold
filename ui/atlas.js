@@ -32,7 +32,7 @@ export function renderAtlas(host, runs, currentLabel, q = 0.06, predicted = {}) 
     dot.setAttribute('aria-hidden', 'true');
     const label = document.createElement('span');
     const pred = predicted[run.profile.model];
-    label.innerHTML = `${escape(shortName(run.profile.label))}<small>${FAMILY[run.profile.family] || ''}${pred ? ` · predicted ${pred.toFixed(2)}` : ''}${you ? ' · your machine' : ''}</small>`;
+    label.innerHTML = `${escape(shortName(run.profile.label))}<small>${FAMILY[run.profile.family] || ''}${pred ? ` · predicted ${pred.toFixed(2)}` : ''}${run.recorded_locally ? ' · re-run in Aer locally' : ''}${you ? ' · your machine' : ''}</small>`;
     name.append(dot, label);
     const barCell = document.createElement('span');
     barCell.className = 'atlas-bar-cell';

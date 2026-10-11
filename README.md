@@ -49,16 +49,18 @@ Each row is one job, decoded in the browser. **Λ measured** is fitted across ev
 | IBM Kingston | superconducting | 17 | 1,600 | **2.90** | 2.45 – 3.46 | 2.51 |
 | IBM Fez | superconducting | 17 | 1,600 | **2.66** | 2.28 – 3.17 | 2.51 |
 | IBM Boston | superconducting | 17 | 1,600 | **2.47** | 2.13 – 2.92 | 2.64 |
+| IBM Miami | superconducting | 17 | 1,600 | **2.45** | 2.16 – 2.79 | 2.35 |
 | IBM Aachen | superconducting | 17 | 1,600 | **2.28** | 1.98 – 2.63 | 2.64 |
 | IBM Pittsburgh | superconducting | 17 | 1,600 | **2.23** | 1.97 – 2.55 | 2.64 |
-| IBM Miami | superconducting | 17 | 1,600 | **2.10** | 1.87 – 2.35 | 2.35 |
+| IBM Berlin | superconducting | 17 | 1,600 | **2.06** | 1.87 – 2.27 | 2.35 |
 | IBM Marrakesh | superconducting | 17 | 1,600 | **2.02** | 1.85 – 2.21 | 2.51 |
-| IBM Berlin | superconducting | 17 | 1,600 | **2.01** | 1.82 – 2.24 | 2.35 |
 | Built-in simulator | no noise | 19 | 1,600 | **2.97** | 2.36 – 3.75 | 2.94 |
 | AWS Braket local simulator | no noise | 19 | 1,600 | **2.37** | 1.96 – 2.95 | 2.94 |
 | *The dial alone, no machine noise (model)* | | | | *2.94* | | |
 | *Google Willow, surface code, native noise (2024)* | superconducting | 101 | | *2.14* | ± 0.02 | |
 | *Google Sycamore, repetition code, native noise (2021)* | superconducting | 21 | | *2.99* | ± 0.09 | |
+
+The IBM Miami and Berlin rows were re-run after the decoder learned their un-reset readout edge; their raw counts from Qollab were gone, so they were re-recorded on the same IBM noise models in Qiskit Aer locally (`tools/record_local.py`). A fresh Qollab run on the Miami model with the fixed decoder gave Λ = 2.24 (1.99 – 2.53), inside the row's interval. Every other row was recorded on Qollab's runner.
 
 The dial sets the level: with no machine noise at all it gives Λ = 2.94, and a machine's own gates and readout can only pull Λ down from there. Differences between machines are mostly within the intervals; the two noise-free simulators, which run identical physics, differ by as much as any pair. What a machine really changes is the error it adds on top of the dial, which Figure 4 measures from its syndromes. Turning twirling off on IonQ Forte Enterprise 1 drops Λ from 2.50 to 1.91: coherent errors add up and the decoder, which expects random flips, loses ground.
 
